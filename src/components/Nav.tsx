@@ -25,13 +25,14 @@ export default function Nav() {
         {t("ranking")}
       </Link>
       <div className="ml-auto flex items-center gap-3">
-        {user ? (
+        {user && (
           <UserMenu
             label={dn(user.displayName) || user.email || ""}
             email={user.email}
           />
-        ) : (
-          <Link className="btn" href="/login">
+        )}
+        {(!user || user.isAnonymous) && (
+          <Link className={user ? "btn-ghost !py-1.5 text-sm" : "btn"} href="/login">
             {t("signIn")}
           </Link>
         )}

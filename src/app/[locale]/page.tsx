@@ -1,9 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { LockIcon } from "@/components/Icons";
+import { LockIcon, SpinnerIcon } from "@/components/Icons";
 import {
   collection,
   limit,
@@ -13,8 +13,10 @@ import {
 } from "firebase/firestore";
 import { api, db } from "@/lib/firebase";
 import { useAuth } from "@/components/AuthProvider";
+import HeroBoard from "@/components/HeroBoard";
 import { Room } from "@/lib/types";
 import { useApiError } from "@/lib/useApiError";
+import { useDisplayName } from "@/lib/useDisplayName";
 
 const SIDES = [
   { v: "random", key: "sideRandom", glyph: "?" },
@@ -22,18 +24,29 @@ const SIDES = [
   { v: "black", key: "sideBlack", glyph: "將" },
 ];
 
+type Busy = null | "create" | "quick";
+
 export default function Lobby() {
-  const { user, ready } = useAuth();
+  const { user, ready, ensureUser } = useAuth();
   const t = useTranslations("lobby");
   const apiError = useApiError();
+  const dn = useDisplayName();
   const router = useRouter();
+  const hostRef = useRef<HTMLElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [side, setSide] = useState("random");
   const [err, setErr] = useState("");
-  const [busy, setBusy] = useState<null | "create" | "quick">(null);
+  const [busy, setBusy] = useState<Busy>(null);
+
+  // Nobody is forced to sign in: visitors quietly get a guest seat so the live
+  // room list and one-tap play work straight away.
+  useEffect(() => {
+    if (ready && !user) ensureUser().catch((e) => setErr(apiError(e)));
+  }, [ready, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!user) return;
@@ -47,12 +60,13 @@ export default function Lobby() {
   }, [user]);
 
   const run = async (
-    kind: "create" | "quick",
+    kind: Exclude<Busy, null>,
     fn: () => Promise<{ code: string }>,
   ) => {
     setBusy(kind);
     setErr("");
     try {
+      await ensureUser(); // covers the "clicked before the guest seat was ready" case
       router.push(`/room/${(await fn()).code}`);
     } catch (e: any) {
       setErr(apiError(e));
@@ -60,49 +74,108 @@ export default function Lobby() {
     }
   };
 
-  if (ready && !user)
-    return (
-      <section className="card mx-auto mt-10 flex max-w-md flex-col items-center gap-4 px-6 py-10 text-center">
-        <span className="piece size-20 text-5xl text-lacquer">戰</span>
-        <h1 className="font-display text-3xl font-bold">{t("signInTitle")}</h1>
-        <p className="text-mist">{t("signInBody")}</p>
-        <Link href="/login" className="btn mt-2">
-          {t("signInCta")}
-        </Link>
-      </section>
-    );
+  const quickMatch = () => run("quick", () => api("/api/match/find"));
+
+  const stats = useMemo(
+    () => ({
+      waiting: rooms.filter((r) => r.status === "waiting").length,
+      live: rooms.filter((r) => r.status === "playing").length,
+    }),
+    [rooms],
+  );
+
+  const hostFriend = () => {
+    hostRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    nameRef.current?.focus({ preventScroll: true });
+  };
 
   return (
     <div>
-      {/* Hero: one obvious thing to do */}
-      <section className="flex flex-col items-center gap-8 py-4 text-center sm:flex-row sm:justify-between sm:text-left">
-        <div className="max-w-md">
-          <h1 className="font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl">
-            {t("heroTitle")}
-          </h1>
-          <p className="mt-3 text-lg text-mist">{t("heroBody")}</p>
-        </div>
+      {/* ───────── Hero: one obvious thing to do ───────── */}
+      <section className="hero-glow relative -mx-2 overflow-hidden rounded-3xl px-2 py-6 sm:mx-0 sm:px-8 sm:py-10">
+        <div className="grid items-center gap-10 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="rise-in text-center lg:text-left">
+            <p className="mx-auto inline-flex items-center gap-2 rounded-full border border-brass/30 bg-brass/10 px-3.5 py-1 text-sm font-medium text-brass lg:mx-0">
+              <span className="size-1.5 rounded-full bg-brass" />
+              {t("heroEyebrow")}
+            </p>
 
-        <button
-          type="button"
-          disabled={busy !== null}
-          onClick={() => run("quick", () => api("/api/match/find"))}
-          className="group flex shrink-0 flex-col items-center gap-4 disabled:opacity-80 cursor-pointer"
-        >
-          <span className="relative">
-            {busy === "quick" && (
-              <span className="absolute inset-0 animate-ping rounded-full bg-brass/40" />
-            )}
-            <span className="relative grid size-36 place-items-center rounded-full bg-[radial-gradient(circle_at_30%_25%,#fff6dc,#e9d3a0_65%,#c9aa6a)] shadow-[0_8px_0_#8d6b34,0_18px_30px_rgb(0_0_0/.45)] ring-4 ring-brass/70 transition group-hover:-translate-y-1 group-active:translate-y-1.5 group-active:shadow-[0_2px_0_#8d6b34,0_6px_12px_rgb(0_0_0/.4)]">
-              <span className="grid size-28 place-items-center rounded-full border-2 border-lacquer font-han text-6xl font-bold text-lacquer">
-                戰
-              </span>
-            </span>
-          </span>
-          <span className="font-display text-xl font-semibold">
-            {busy === "quick" ? t("quickFinding") : t("quickMatch")}
-          </span>
-        </button>
+            <h1 className="mt-4 bg-gradient-to-br from-bone via-bone to-brass bg-clip-text font-display text-5xl font-bold leading-[1.02] tracking-tight text-transparent sm:text-6xl xl:text-7xl">
+              {t("heroTitle")}
+            </h1>
+            <p className="mx-auto mt-4 max-w-lg text-lg text-mist lg:mx-0">
+              {t("heroBody")}
+            </p>
+
+            <div className="mt-7 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
+              <button
+                type="button"
+                className="btn-hero w-full sm:w-auto"
+                disabled={busy !== null}
+                onClick={quickMatch}
+              >
+                {busy === "quick" ? (
+                  <>
+                    <SpinnerIcon className="text-2xl" />
+                    {t("quickFinding")}
+                  </>
+                ) : (
+                  <>
+                    <span
+                      aria-hidden="true"
+                      className="piece size-9 text-xl text-lacquer"
+                    >
+                      戰
+                    </span>
+                    {t("playNow")}
+                  </>
+                )}
+              </button>
+              <Link
+                href="/play-ai"
+                className="btn-ghost w-full !py-4 text-base sm:w-auto"
+              >
+                {t("practice")}
+              </Link>
+            </div>
+
+            <ul className="mt-6 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-mist lg:justify-start">
+              {["chipFree", "chipNoSignup", "chipElo"].map((k) => (
+                <li key={k} className="flex items-center gap-1.5">
+                  <span aria-hidden="true" className="text-river">
+                    ✓
+                  </span>
+                  {t(k)}
+                </li>
+              ))}
+            </ul>
+
+            {/* Live pulse + gentle guest status: social proof without a login wall */}
+            <div className="mt-6 flex min-h-8 flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm lg:justify-start">
+              {loaded && (
+                <span className="flex items-center gap-2 rounded-full bg-night/60 px-3 py-1 text-mist ring-1 ring-bone/10">
+                  <span className="size-2 animate-pulse rounded-full bg-river" />
+                  {t("waitingCount", { count: stats.waiting })}
+                  <span aria-hidden="true">·</span>
+                  {t("liveCount", { count: stats.live })}
+                </span>
+              )}
+              {user?.isAnonymous && (
+                <span className="text-mist">
+                  {t("playingAs", { name: dn(user.displayName) })}
+                  {" · "}
+                  <Link href="/login" className="text-brass hover:underline">
+                    {t("saveRating")}
+                  </Link>
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="rise-in mx-auto w-full max-w-[250px] sm:max-w-[340px] lg:max-w-[400px] [animation-delay:.15s]">
+            <HeroBoard />
+          </div>
+        </div>
       </section>
 
       {err && (
@@ -113,6 +186,37 @@ export default function Lobby() {
           {err}
         </p>
       )}
+
+      {/* ───────── Ways to play ───────── */}
+      <section className="mt-10" aria-labelledby="ways-title">
+        <h2 id="ways-title" className="sr-only">
+          {t("waysTitle")}
+        </h2>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <WayCard
+            glyph="戰"
+            title={t("wayQuickTitle")}
+            body={t("wayQuickBody")}
+            go={t("wayGo")}
+            onClick={quickMatch}
+            disabled={busy !== null}
+          />
+          <WayCard
+            glyph="友"
+            title={t("wayFriendTitle")}
+            body={t("wayFriendBody")}
+            go={t("wayGo")}
+            onClick={hostFriend}
+          />
+          <WayCard
+            glyph="機"
+            title={t("wayAiTitle")}
+            body={t("wayAiBody")}
+            go={t("wayGo")}
+            href="/play-ai"
+          />
+        </div>
+      </section>
 
       {/* The river divides the hero from the rooms */}
       <div
@@ -151,16 +255,31 @@ export default function Lobby() {
               ))}
             </ul>
           ) : (
-            <div className="card px-6 py-10 text-center">
+            <div className="card flex flex-col items-center px-6 py-10 text-center">
+              <span className="piece mb-3 size-14 text-3xl text-lacquer">
+                戰
+              </span>
               <p className="font-display text-xl font-semibold">
                 {t("noRooms")}
               </p>
               <p className="mt-1 text-mist">{t("noRoomsBody")}</p>
+              <button
+                type="button"
+                className="btn mt-5"
+                disabled={busy !== null}
+                onClick={quickMatch}
+              >
+                {t("playNow")}
+              </button>
             </div>
           )}
         </section>
 
-        <section className="card h-fit space-y-4 p-5 lg:sticky lg:top-6">
+        <section
+          id="host"
+          ref={hostRef}
+          className="card h-fit space-y-4 p-5 lg:sticky lg:top-6"
+        >
           <div>
             <h2 className="font-display text-xl font-semibold">
               {t("hostTitle")}
@@ -171,20 +290,11 @@ export default function Lobby() {
           <label className="block space-y-1.5">
             <span className="text-sm text-mist">{t("roomName")}</span>
             <input
+              ref={nameRef}
               className="input"
               placeholder={t("roomNamePlaceholder")}
               value={name}
               onChange={(e) => setName(e.target.value)}
-            />
-          </label>
-
-          <label className="block space-y-1.5">
-            <span className="text-sm text-mist">{t("password")}</span>
-            <input
-              className="input"
-              placeholder={t("passwordPlaceholder")}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
             />
           </label>
 
@@ -216,6 +326,25 @@ export default function Lobby() {
             </div>
           </fieldset>
 
+          {/* Password is rarely needed: tuck it away so the form stays light */}
+          <details className="group">
+            <summary className="cursor-pointer list-none text-sm text-brass hover:underline">
+              <span className="group-open:hidden">+ {t("hostMore")}</span>
+              <span className="hidden group-open:inline">
+                − {t("hostMore")}
+              </span>
+            </summary>
+            <label className="mt-3 block space-y-1.5">
+              <span className="text-sm text-mist">{t("password")}</span>
+              <input
+                className="input"
+                placeholder={t("passwordPlaceholder")}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </label>
+          </details>
+
           <button
             type="button"
             className="btn w-full"
@@ -232,9 +361,56 @@ export default function Lobby() {
           >
             {busy === "create" ? t("creating") : t("create")}
           </button>
+          <p className="text-center text-xs text-mist">{t("copyHint")}</p>
         </section>
       </div>
     </div>
+  );
+}
+
+function WayCard({
+  glyph,
+  title,
+  body,
+  go,
+  href,
+  onClick,
+  disabled,
+}: {
+  glyph: string;
+  title: string;
+  body: string;
+  go: string;
+  href?: string;
+  onClick?: () => void;
+  disabled?: boolean;
+}) {
+  const cls =
+    "card group flex h-full w-full items-center gap-4 p-4 text-left transition hover:-translate-y-0.5 hover:border-brass/50 hover:bg-moss disabled:pointer-events-none disabled:opacity-60 sm:flex-col sm:items-start sm:gap-3 sm:p-5";
+  const inner = (
+    <>
+      <span className="piece size-14 shrink-0 text-3xl text-lacquer transition group-hover:scale-105 group-hover:-rotate-6">
+        {glyph}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-display text-lg font-semibold">
+          {title}
+        </span>
+        <span className="mt-0.5 block text-sm text-mist">{body}</span>
+      </span>
+      <span className="shrink-0 text-sm font-semibold text-brass transition group-hover:translate-x-1 sm:mt-auto">
+        {go} →
+      </span>
+    </>
+  );
+  return href ? (
+    <Link href={href} className={cls}>
+      {inner}
+    </Link>
+  ) : (
+    <button type="button" className={cls} onClick={onClick} disabled={disabled}>
+      {inner}
+    </button>
   );
 }
 

@@ -80,6 +80,63 @@ html[lang="zh-Hans"] body {
   background-position: center;
 }
 
+/* ---- Landing page ---- */
+@keyframes float-piece {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translateY(0) rotate(var(--tilt, 0deg));
+  }
+  50% {
+    transform: translate(-50%, -50%) translateY(-7px) rotate(var(--tilt, 0deg));
+  }
+}
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ring-pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.5);
+    opacity: 0;
+  }
+}
+.float-piece {
+  animation: float-piece 5s ease-in-out infinite;
+}
+.rise-in {
+  animation: rise-in 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.ring-pulse {
+  animation: ring-pulse 2.4s ease-out infinite;
+}
+/* Big primary call-to-action: brass, tactile, glowing */
+.btn-hero {
+  @apply relative inline-flex items-center justify-center gap-3 rounded-2xl bg-brass px-8 py-4 font-display text-xl font-bold text-night shadow-[0_6px_0_#8a6420,0_16px_32px_rgb(217_164_65/0.25)] transition hover:-translate-y-0.5 hover:bg-[#e6b555] active:translate-y-1 active:shadow-[0_1px_0_#8a6420] disabled:pointer-events-none disabled:opacity-70;
+}
+.hero-glow {
+  background:
+    radial-gradient(
+      600px 360px at 75% 40%,
+      rgb(214 64 43 / 0.14),
+      transparent 70%
+    ),
+    radial-gradient(
+      500px 300px at 10% 0%,
+      rgb(63 143 138 / 0.14),
+      transparent 70%
+    );
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

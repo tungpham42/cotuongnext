@@ -9,7 +9,6 @@ import {
   orderBy,
   query,
 } from "firebase/firestore";
-import { Link } from "@/i18n/navigation";
 import { SideDot } from "@/components/Icons";
 import { useTranslations } from "next-intl";
 import Board, { boardWidth } from "@/components/Board";
@@ -33,7 +32,7 @@ export default function RoomPage({
   params: Promise<{ code: string }>;
 }) {
   const { code } = use(params);
-  const { user, ready } = useAuth();
+  const { user, ready, ensureUser } = useAuth();
   const t = useTranslations("room");
   const tReason = useTranslations("reasons");
   const tLobby = useTranslations("lobby");
@@ -49,6 +48,9 @@ export default function RoomPage({
   const [err, setErr] = useState("");
   const [now, setNow] = useState(Date.now());
 
+  useEffect(() => {
+    if (ready && !user) ensureUser().catch((e) => setErr(apiError(e)));
+  }, [ready, user]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (user)
       return onSnapshot(doc(db, "rooms", code), (s) =>
@@ -114,19 +116,8 @@ export default function RoomPage({
       act("timeout");
   }); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (ready && !user)
-    return (
-      <p>
-        {t.rich("signInPrompt", {
-          link: (chunks) => (
-            <Link href="/login" className="text-amber-400 underline">
-              {chunks}
-            </Link>
-          ),
-        })}
-      </p>
-    );
-  if (room === undefined) return <p>{t("loading")}</p>;
+  // Friends opening a shared room link get a guest seat automatically.
+  if (!user || room === undefined) return <p>{t("loading")}</p>;
   if (room === null) return <p>{t("notFound")}</p>;
 
   const flipped = me === "b";

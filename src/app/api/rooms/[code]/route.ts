@@ -80,7 +80,7 @@ export async function POST(
         return;
       }
 
-      if (room.status !== "playing")
+      if (room.status !== "playing" && body.type !== "rematch")
         throw new HttpError(400, "GAME_NOT_ACTIVE");
       const other = me === "r" ? "black" : "red";
       const mine = me === "r" ? "red" : "black";

@@ -37,8 +37,8 @@ const han = Noto_Serif_TC({
 });
 
 const OG_LOCALE: Record<Locale, string> = {
-  vi: "vi_VN",
   en: "en_US",
+  vi: "vi_VN",
   zh: "zh_CN",
 };
 

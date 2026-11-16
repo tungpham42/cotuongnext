@@ -15,16 +15,16 @@ export class HttpError extends Error {
 
 export async function requireUser(req: NextRequest) {
   const token = (req.headers.get("authorization") || "").replace("Bearer ", "");
-  if (!token) throw new HttpError(401, "Not signed in");
+  if (!token) throw new HttpError(401, "NOT_SIGNED_IN");
   try {
     return await adminAuth.verifyIdToken(token);
   } catch {
-    throw new HttpError(401, "Invalid token");
+    throw new HttpError(401, "INVALID_TOKEN");
   }
 }
 export const handle = (e: unknown) =>
   NextResponse.json(
-    { error: e instanceof Error ? e.message : "Error" },
+    { error: e instanceof HttpError ? e.message : "UNKNOWN" },
     { status: e instanceof HttpError ? e.status : 500 },
   );
 

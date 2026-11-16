@@ -103,7 +103,7 @@ export default function Board({
       viewBox={`0 0 ${W} ${H}`}
       preserveAspectRatio="xMidYMid meet"
       style={{ width: boardWidth(reserved) }}
-      className="block h-auto w-full max-w-[560px] touch-manipulation select-none rounded-xl bg-amber-200 shadow-xl"
+      className="mx-auto block h-auto w-full max-w-[560px] touch-manipulation select-none rounded-xl bg-amber-200 shadow-xl md:mx-0"
     >
       {els}
       <text

@@ -1,11 +1,13 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Xiangqi } from "@/lib/xiangqi";
 import Board from "@/components/Board";
 import { AI_LEVELS, bestMove } from "@/lib/ai";
 import { START_FEN } from "@/lib/types";
 
 export default function PlayAI() {
+  const t = useTranslations("ai");
   const [fen, setFen] = useState(START_FEN);
   const [last, setLast] = useState<{ from: string; to: string } | null>(null);
   const [level, setLevel] = useState(1);
@@ -43,15 +45,15 @@ export default function PlayAI() {
   };
   const status = g.in_checkmate()
     ? g.turn() === "b"
-      ? "You win! 🎉"
-      : "Computer wins"
+      ? t("youWin")
+      : t("computerWins")
     : over
-      ? "Draw / game over"
+      ? t("draw")
       : thinking
-        ? "Computer is thinking…"
+        ? t("thinking")
         : g.in_check()
-          ? "Check!"
-          : "Your turn (Red)";
+          ? t("check")
+          : t("yourTurn");
   return (
     <div className="flex flex-col gap-6 md:flex-row">
       <Board fen={fen} playAs="r" last={last} onMove={apply} />
@@ -63,13 +65,13 @@ export default function PlayAI() {
           onChange={(e) => setLevel(+e.target.value)}
         >
           {AI_LEVELS.map((l, i) => (
-            <option key={l.name} value={i}>
-              {l.name}
+            <option key={l.key} value={i}>
+              {t(`levels.${l.key}`)}
             </option>
           ))}
         </select>
         <button className="btn-ghost w-full" onClick={undo}>
-          Undo
+          {t("undo")}
         </button>
         <button
           className="btn w-full"
@@ -79,7 +81,7 @@ export default function PlayAI() {
             setLast(null);
           }}
         >
-          New game
+          {t("newGame")}
         </button>
       </div>
     </div>

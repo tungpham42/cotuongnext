@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   collection,
   limit,
@@ -12,15 +13,18 @@ import {
 import { api, db } from "@/lib/firebase";
 import { useAuth } from "@/components/AuthProvider";
 import { Room } from "@/lib/types";
+import { useApiError } from "@/lib/useApiError";
 
 const SIDES = [
-  { v: "random", label: "Random", glyph: "?" },
-  { v: "red", label: "Red", glyph: "帥" },
-  { v: "black", label: "Black", glyph: "將" },
+  { v: "random", key: "sideRandom", glyph: "?" },
+  { v: "red", key: "sideRed", glyph: "帥" },
+  { v: "black", key: "sideBlack", glyph: "將" },
 ];
 
 export default function Lobby() {
   const { user, ready } = useAuth();
+  const t = useTranslations("lobby");
+  const apiError = useApiError();
   const router = useRouter();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -50,7 +54,7 @@ export default function Lobby() {
     try {
       router.push(`/room/${(await fn()).code}`);
     } catch (e: any) {
-      setErr(e.message);
+      setErr(apiError(e));
       setBusy(null);
     }
   };
@@ -60,13 +64,13 @@ export default function Lobby() {
       <section className="card mx-auto mt-10 flex max-w-md flex-col items-center gap-4 px-6 py-10 text-center">
         <span className="piece size-20 text-5xl text-lacquer">戰</span>
         <h1 className="font-display text-3xl font-bold">
-          Sign in to join a game
+          {t("signInTitle")}
         </h1>
         <p className="text-mist">
-          Online matches, rooms and Elo rankings need an account.
+          {t("signInBody")}
         </p>
         <Link href="/login" className="btn mt-2">
-          Sign in
+          {t("signInCta")}
         </Link>
       </section>
     );
@@ -77,11 +81,10 @@ export default function Lobby() {
       <section className="flex flex-col items-center gap-8 py-4 text-center sm:flex-row sm:justify-between sm:text-left">
         <div className="max-w-md">
           <h1 className="font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl">
-            Sit down. Make your first move.
+            {t("heroTitle")}
           </h1>
           <p className="mt-3 text-lg text-mist">
-            Get matched in seconds, or open a room and send the code to a
-            friend.
+            {t("heroBody")}
           </p>
         </div>
 
@@ -102,7 +105,7 @@ export default function Lobby() {
             </span>
           </span>
           <span className="font-display text-xl font-semibold">
-            {busy === "quick" ? "Finding an opponent…" : "Quick match"}
+            {busy === "quick" ? t("quickFinding") : t("quickMatch")}
           </span>
         </button>
       </section>
@@ -128,10 +131,10 @@ export default function Lobby() {
       <div className="grid gap-8 lg:grid-cols-[1fr_340px]">
         <section>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-display text-2xl font-semibold">Open rooms</h2>
+            <h2 className="font-display text-2xl font-semibold">{t("openRooms")}</h2>
             <span className="flex items-center gap-2 text-sm text-mist">
               <span className="size-2 animate-pulse rounded-full bg-river" />
-              Live
+              {t("live")}
             </span>
           </div>
 
@@ -152,9 +155,9 @@ export default function Lobby() {
             </ul>
           ) : (
             <div className="card px-6 py-10 text-center">
-              <p className="font-display text-xl font-semibold">No rooms yet</p>
+              <p className="font-display text-xl font-semibold">{t("noRooms")}</p>
               <p className="mt-1 text-mist">
-                Be the first. Start a quick match or host a room.
+                {t("noRoomsBody")}
               </p>
             </div>
           )}
@@ -162,34 +165,34 @@ export default function Lobby() {
 
         <section className="card h-fit space-y-4 p-5 lg:sticky lg:top-6">
           <div>
-            <h2 className="font-display text-xl font-semibold">Host a room</h2>
+            <h2 className="font-display text-xl font-semibold">{t("hostTitle")}</h2>
             <p className="text-sm text-mist">
-              Share the code with a friend, or let anyone join.
+              {t("hostBody")}
             </p>
           </div>
 
           <label className="block space-y-1.5">
-            <span className="text-sm text-mist">Room name</span>
+            <span className="text-sm text-mist">{t("roomName")}</span>
             <input
               className="input"
-              placeholder="e.g. Casual game"
+              placeholder={t("roomNamePlaceholder")}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
           </label>
 
           <label className="block space-y-1.5">
-            <span className="text-sm text-mist">Password (optional)</span>
+            <span className="text-sm text-mist">{t("password")}</span>
             <input
               className="input"
-              placeholder="Leave empty for an open room"
+              placeholder={t("passwordPlaceholder")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
           </label>
 
           <fieldset className="space-y-1.5">
-            <legend className="text-sm text-mist">You play</legend>
+            <legend className="text-sm text-mist">{t("youPlay")}</legend>
             <div className="grid grid-cols-3 gap-2">
               {SIDES.map((s) => (
                 <label key={s.v} className="cursor-pointer">
@@ -209,7 +212,7 @@ export default function Lobby() {
                     >
                       {s.glyph}
                     </span>
-                    {s.label}
+                    {t(s.key)}
                   </span>
                 </label>
               ))}
@@ -221,10 +224,16 @@ export default function Lobby() {
             className="btn w-full"
             disabled={busy !== null}
             onClick={() =>
-              run("create", () => api("/api/rooms", { name, password, side }))
+              run("create", () =>
+                api("/api/rooms", {
+                  name: name.trim() || t("defaultRoomName"),
+                  password,
+                  side,
+                }),
+              )
             }
           >
-            {busy === "create" ? "Creating…" : "Create room"}
+            {busy === "create" ? t("creating") : t("create")}
           </button>
         </section>
       </div>
@@ -233,6 +242,7 @@ export default function Lobby() {
 }
 
 function RoomRow({ r }: { r: Room }) {
+  const t = useTranslations("lobby");
   const waiting = r.status === "waiting";
   const playing = r.status === "playing";
   return (
@@ -254,18 +264,19 @@ function RoomRow({ r }: { r: Room }) {
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium">
             {r.hasPass && (
-              <span role="img" aria-label="Password protected">
+              <span role="img" aria-label={t("passwordProtected")}>
                 🔒{" "}
               </span>
             )}
-            {r.name} <span className="text-mist">#{r.code}</span>
+            {r.isQuick ? t("quickRoomName") : r.name}{" "}
+            <span className="text-mist">#{r.code}</span>
           </span>
           <span className="text-sm text-mist">
             {waiting
-              ? "Waiting for an opponent"
+              ? t("waitingOpp")
               : playing
-                ? "Game in progress"
-                : "Finished"}
+                ? t("inProgress")
+                : t("finished")}
           </span>
         </span>
         <span
@@ -275,7 +286,7 @@ function RoomRow({ r }: { r: Room }) {
               : "border border-bone/25 group-hover:bg-bone/10"
           }`}
         >
-          {waiting ? "Join" : playing ? "Watch" : "View"}
+          {waiting ? t("join") : playing ? t("watch") : t("view")}
         </span>
       </Link>
     </li>

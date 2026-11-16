@@ -10,10 +10,10 @@ const V: Record<string, number> = {
   k: 10000,
 };
 export const AI_LEVELS = [
-  { name: "Easiest", depth: 1, rand: 0.6 },
-  { name: "Easy", depth: 1, rand: 0.2 },
-  { name: "Normal", depth: 2, rand: 0.05 },
-  { name: "Hard", depth: 3, rand: 0 },
+  { key: "easiest", depth: 1, rand: 0.6 },
+  { key: "easy", depth: 1, rand: 0.2 },
+  { key: "normal", depth: 2, rand: 0.05 },
+  { key: "hard", depth: 3, rand: 0 },
 ];
 
 function evaluate(g: Xiangqi) {

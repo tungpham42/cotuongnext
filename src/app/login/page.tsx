@@ -1,6 +1,7 @@
 "use client";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
@@ -13,33 +14,35 @@ import { auth } from "@/lib/firebase";
 type Mode = "in" | "up";
 type Method = "google" | "guest" | "email";
 
-/** Turn Firebase error codes into messages a player can act on. */
-function friendlyError(e: unknown): string {
+/** Map Firebase error codes to keys in the "authErrors" messages namespace. */
+function authErrorKey(e: unknown): string | null {
   switch ((e as { code?: string })?.code) {
     case "auth/invalid-credential":
     case "auth/wrong-password":
     case "auth/user-not-found":
-      return "Wrong email or password.";
+      return "wrongCredentials";
     case "auth/email-already-in-use":
-      return "That email already has an account. Try signing in.";
+      return "emailInUse";
     case "auth/weak-password":
-      return "Password must be at least 6 characters.";
+      return "weakPassword";
     case "auth/invalid-email":
-      return "Enter a valid email address.";
+      return "invalidEmail";
     case "auth/too-many-requests":
-      return "Too many attempts. Try again in a few minutes.";
+      return "tooMany";
     case "auth/operation-not-allowed":
-      return "This sign-in method isn't enabled yet.";
+      return "notEnabled";
     case "auth/popup-closed-by-user":
     case "auth/cancelled-popup-request":
-      return ""; // the player closed the popup on purpose
+      return null; // the player closed the popup on purpose
     default:
-      return (e as Error)?.message || "Something went wrong. Try again.";
+      return "generic";
   }
 }
 
 export default function Login() {
   const router = useRouter();
+  const t = useTranslations("login");
+  const te = useTranslations("authErrors");
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [mode, setMode] = useState<Mode>("in");
@@ -53,7 +56,8 @@ export default function Login() {
       await fn();
       router.push("/");
     } catch (e) {
-      setMsg(friendlyError(e));
+      const key = authErrorKey(e);
+      setMsg(key ? te(key) : "");
       setBusy(null);
     }
   };
@@ -71,10 +75,10 @@ export default function Login() {
     <section className="card mx-auto mt-4 max-w-sm space-y-4 p-6 sm:mt-10">
       <div className="space-y-1">
         <h1 className="font-display text-3xl font-bold">
-          {mode === "in" ? "Sign in" : "Create account"}
+          {mode === "in" ? t("signIn") : t("createAccount")}
         </h1>
         <p className="text-sm text-mist">
-          Guests can start playing right away.
+          {t("guestsHint")}
         </p>
       </div>
 
@@ -87,7 +91,7 @@ export default function Login() {
             go("google", () => signInWithPopup(auth, new GoogleAuthProvider()))
           }
         >
-          {busy === "google" ? "Opening Google…" : "Continue with Google"}
+          {busy === "google" ? t("googleOpening") : t("google")}
         </button>
         <button
           type="button"
@@ -95,13 +99,13 @@ export default function Login() {
           disabled={busy !== null}
           onClick={() => go("guest", () => signInAnonymously(auth))}
         >
-          {busy === "guest" ? "Setting up your seat…" : "Play as guest"}
+          {busy === "guest" ? t("guestOpening") : t("guest")}
         </button>
       </div>
 
       <div className="flex items-center gap-3 text-sm text-mist">
         <span className="h-px flex-1 bg-bone/15" />
-        or use email
+        {t("orEmail")}
         <span className="h-px flex-1 bg-bone/15" />
       </div>
 
@@ -109,7 +113,7 @@ export default function Login() {
         <input
           className="input"
           type="email"
-          placeholder="Email"
+          placeholder={t("email")}
           autoComplete="email"
           required
           value={email}
@@ -118,7 +122,7 @@ export default function Login() {
         <input
           className="input"
           type="password"
-          placeholder="Password"
+          placeholder={t("password")}
           autoComplete={mode === "in" ? "current-password" : "new-password"}
           required
           minLength={6}
@@ -127,10 +131,10 @@ export default function Login() {
         />
         <button className="btn w-full" disabled={busy !== null}>
           {busy === "email"
-            ? "Please wait…"
+            ? t("wait")
             : mode === "in"
-              ? "Sign in"
-              : "Create account"}
+              ? t("signIn")
+              : t("createAccount")}
         </button>
       </form>
 
@@ -151,9 +155,7 @@ export default function Login() {
           setMsg("");
         }}
       >
-        {mode === "in"
-          ? "Don't have an account? Create one"
-          : "Already have an account? Sign in"}
+        {mode === "in" ? t("noAccount") : t("haveAccount")}
       </button>
     </section>
   );

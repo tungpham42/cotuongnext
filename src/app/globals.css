@@ -24,10 +24,22 @@ body {
   min-height: 100dvh;
   /* faint board grid + warm lantern glow */
   background-image:
-    radial-gradient(900px 480px at 80% -10%, rgb(217 164 65 / 0.1), transparent 60%),
+    radial-gradient(
+      900px 480px at 80% -10%,
+      rgb(217 164 65 / 0.1),
+      transparent 60%
+    ),
     linear-gradient(rgb(242 230 201 / 0.035) 1px, transparent 1px),
     linear-gradient(90deg, rgb(242 230 201 / 0.035) 1px, transparent 1px);
-  background-size: auto, 56px 56px, 56px 56px;
+  background-size:
+    auto,
+    56px 56px,
+    56px 56px;
+}
+
+html[lang="zh-Hans"] body {
+  font-family:
+    "PingFang SC", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
 }
 
 :focus-visible {
@@ -56,7 +68,9 @@ body {
 .piece {
   @apply grid place-items-center rounded-full font-han font-bold;
   background: radial-gradient(circle at 30% 25%, #fff6dc, #e9d3a0 65%, #c9aa6a);
-  box-shadow: 0 2px 0 #8d6b34, 0 4px 8px rgb(0 0 0 / 0.35);
+  box-shadow:
+    0 2px 0 #8d6b34,
+    0 4px 8px rgb(0 0 0 / 0.35);
 }
 
 /* The river that divides the board */

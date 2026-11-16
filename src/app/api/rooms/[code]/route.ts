@@ -23,7 +23,7 @@ export async function POST(
 
     await adminDb.runTransaction(async (tx) => {
       const snap = await tx.get(ref);
-      if (!snap.exists) throw new HttpError(404, "Room not found");
+      if (!snap.exists) throw new HttpError(404, "ROOM_NOT_FOUND");
       const room = snap.data() as Room;
       const uids = [room.redUid, room.blackUid].filter(Boolean) as string[];
       const us = await Promise.all(
@@ -38,11 +38,11 @@ export async function POST(
 
       if (body.type === "join") {
         if (room.status !== "waiting" || me)
-          throw new HttpError(400, "Cannot join this room");
+          throw new HttpError(400, "CANNOT_JOIN");
         if (room.hasPass) {
           const p = (await tx.get(adminDb.doc(`rooms_private/${code}`))).data();
           if (p?.passHash !== hashPass(String(body.password || "")))
-            throw new HttpError(403, "Incorrect password");
+            throw new HttpError(403, "WRONG_PASSWORD");
         }
         tx.update(ref, {
           [room.redUid ? "blackUid" : "redUid"]: u.uid,
@@ -51,15 +51,15 @@ export async function POST(
         });
         return;
       }
-      if (!me) throw new HttpError(403, "You are not a player in this game");
+      if (!me) throw new HttpError(403, "NOT_A_PLAYER");
       if (room.status !== "playing")
-        throw new HttpError(400, "The game is not in progress");
+        throw new HttpError(400, "GAME_NOT_ACTIVE");
       const other = me === "r" ? "black" : "red";
       const mine = me === "r" ? "red" : "black";
 
       switch (body.type) {
         case "move": {
-          if (turn !== me) throw new HttpError(400, "It's not your turn");
+          if (turn !== me) throw new HttpError(400, "NOT_YOUR_TURN");
           const left = (me === "r" ? room.redTime : room.blackTime) - elapsed;
           if (left <= 0 || elapsed > MOVE_LIMIT) {
             tx.update(ref, finishGame(tx, room, players, other, "timeout"));
@@ -67,7 +67,7 @@ export async function POST(
           }
           const g = new Xiangqi(room.fen);
           const m = g.move({ from: body.from, to: body.to });
-          if (!m) throw new HttpError(400, "Invalid move");
+          if (!m) throw new HttpError(400, "INVALID_MOVE");
           const upd: Record<string, unknown> = {
             fen: g.fen(),
             moves: [...room.moves, m.iccs],
@@ -100,13 +100,13 @@ export async function POST(
           return;
         case "draw-accept":
           if (!room.drawOffer || room.drawOffer === me)
-            throw new HttpError(400, "There is no draw offer");
+            throw new HttpError(400, "NO_DRAW_OFFER");
           tx.update(ref, finishGame(tx, room, players, "draw", "agreement"));
           return;
         case "timeout": {
           const t = turn === "r" ? room.redTime : room.blackTime;
           if (t - elapsed > 0 && elapsed <= MOVE_LIMIT)
-            throw new HttpError(400, "Time has not run out yet");
+            throw new HttpError(400, "TIME_NOT_UP");
           tx.update(
             ref,
             finishGame(
@@ -120,7 +120,7 @@ export async function POST(
           return;
         }
         default:
-          throw new HttpError(400, "Invalid action");
+          throw new HttpError(400, "INVALID_ACTION");
       }
     });
     return NextResponse.json({ ok: true });

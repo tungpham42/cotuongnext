@@ -20,6 +20,6 @@ export async function api<T = any>(path: string, body?: unknown): Promise<T> {
     body: JSON.stringify(body ?? {}),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || res.statusText);
+  if (!res.ok) throw new Error(data.error || "UNKNOWN");
   return data;
 }

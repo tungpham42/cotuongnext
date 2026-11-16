@@ -18,11 +18,15 @@ const FILES = "abcdefghi";
 const RED_NUM = ["九", "八", "七", "六", "五", "四", "三", "二", "一"];
 const BLK_NUM = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
-// Palette — lacquer, gold, ink, jade
-const INK = "#3a2412";
-const RED = "#b3121b";
-const BLACK = "#16110d";
-const GOLD = "#e3b948";
+// Palette — Hương (padauk) wood, carved ink, gold highlight, jade hints
+const INK = "#2a1309"; // engraved lines on the board
+const RED = "#b3121b"; // seal
+const NUM_RED = "#7a0a10"; // carved red numerals
+const NUM_BLK = "#1d0e07"; // carved black numerals
+const PIECE_RED = "#9a0b13"; // red glyph ink on pieces
+const BLACK = "#1b0f08"; // black glyph ink on pieces
+const CARVE_LIGHT = "#f3b987"; // light lip under every carved groove
+const GOLD = "#ffd24d";
 const JADE = "#10b981";
 const SERIF =
   "'STKaiti','KaiTi','Kaiti SC','Noto Serif SC','Songti SC','SimSun',serif";
@@ -91,22 +95,34 @@ export default function Board({
     M + (flipped ? rank : 9 - rank) * CELL,
   ];
 
+  // Engraved line: dark groove + a faint light lip just below it.
   const line = (
     a: [number, number],
     b: [number, number],
     k: string,
     w = 1.5,
   ) => (
-    <line
-      key={k}
-      x1={a[0]}
-      y1={a[1]}
-      x2={b[0]}
-      y2={b[1]}
-      stroke={INK}
-      strokeWidth={w}
-      strokeLinecap="round"
-    />
+    <g key={k} strokeLinecap="round">
+      <line
+        x1={a[0]}
+        y1={a[1]}
+        x2={b[0]}
+        y2={b[1]}
+        stroke={CARVE_LIGHT}
+        strokeWidth={w}
+        opacity={0.38}
+        transform="translate(0.6 0.9)"
+      />
+      <line
+        x1={a[0]}
+        y1={a[1]}
+        x2={b[0]}
+        y2={b[1]}
+        stroke={INK}
+        strokeWidth={w}
+        opacity={0.92}
+      />
+    </g>
   );
 
   const click = (sq: string, piece: { color: string } | null) => {
@@ -158,16 +174,23 @@ export default function Board({
         );
       }
     }
+    const d = parts.join("");
     return (
-      <path
+      <g
         key={`m${file}${rank}`}
-        d={parts.join("")}
         fill="none"
-        stroke={INK}
-        strokeWidth={1.4}
         strokeLinecap="round"
         strokeLinejoin="round"
-      />
+      >
+        <path
+          d={d}
+          stroke={CARVE_LIGHT}
+          strokeWidth={1.4}
+          opacity={0.38}
+          transform="translate(0.6 0.9)"
+        />
+        <path d={d} stroke={INK} strokeWidth={1.4} opacity={0.92} />
+      </g>
     );
   };
   const markers: React.ReactNode[] = [];
@@ -195,95 +218,186 @@ export default function Board({
       `M${x - h + l} ${y + h}H${x - h}V${y + h - l}`,
     ].join("");
     return (
-      <path
-        key={k}
-        d={d}
-        fill="none"
-        stroke={GOLD}
-        strokeWidth={3.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        filter={ref("glow")}
-      />
+      <g key={k} fill="none" strokeLinecap="round" strokeLinejoin="round">
+        {/* dark underlay keeps the gold readable on warm wood */}
+        <path d={d} stroke="#2a0f05" strokeWidth={6} opacity={0.45} />
+        <path d={d} stroke={GOLD} strokeWidth={3.5} filter={ref("glow")} />
+      </g>
     );
   };
 
-  // Corner ornaments for the outer frame
-  const corner = (x: number, y: number, sx: number, sy: number, k: string) => (
-    <g key={k} stroke={GOLD} fill="none" strokeLinecap="round" opacity={0.95}>
-      <path d={`M${x} ${y + sy * 22}V${y}H${x + sx * 22}`} strokeWidth={2.2} />
-      <path
-        d={`M${x + sx * 6} ${y + sy * 14}V${y + sy * 6}H${x + sx * 14}`}
-        strokeWidth={1.2}
-      />
-      <circle
-        cx={x + sx * 3}
-        cy={y + sy * 3}
-        r={1.8}
-        fill={GOLD}
-        stroke="none"
-      />
-    </g>
-  );
+  // Soft "figure" swirls that run along the slab, like the wavy bands of real Hương
+  const figure = [
+    { x: 0.12, bend: -0.08, w: 14, o: 0.07 },
+    { x: 0.31, bend: 0.1, w: 6, o: 0.09 },
+    { x: 0.52, bend: -0.12, w: 18, o: 0.06 },
+    { x: 0.7, bend: 0.07, w: 8, o: 0.08 },
+    { x: 0.88, bend: -0.09, w: 12, o: 0.07 },
+  ];
+
+  const rects = { x: 0, y: 0, width: W, height: H };
 
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
       preserveAspectRatio="xMidYMid meet"
       style={{ width: boardWidth(reserved) }}
-      className="mx-auto block h-auto w-full max-w-[560px] touch-manipulation select-none drop-shadow-[0_20px_30px_rgba(60,20,0,0.45)] md:mx-0"
+      className="mx-auto block h-auto w-full max-w-[560px] touch-manipulation select-none drop-shadow-[0_20px_30px_rgba(50,15,0,0.5)] md:mx-0"
     >
       <defs>
-        {/* Lacquered frame */}
-        <linearGradient id={id("frame")} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#5a1a12" />
-          <stop offset="0.5" stopColor="#2e0d09" />
-          <stop offset="1" stopColor="#4a150f" />
-        </linearGradient>
-        {/* Warm wood face */}
+        <clipPath id={id("slab")}>
+          <rect {...rects} rx={16} />
+        </clipPath>
+
+        {/* ---- Solid Hương slab ---- */}
         <linearGradient id={id("wood")} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#f6d994" />
-          <stop offset="0.45" stopColor="#ecc176" />
-          <stop offset="1" stopColor="#dca85a" />
+          <stop offset="0" stopColor="#cb7440" />
+          <stop offset="0.35" stopColor="#b65c2c" />
+          <stop offset="0.7" stopColor="#c0652f" />
+          <stop offset="1" stopColor="#9b4821" />
         </linearGradient>
-        <radialGradient id={id("vig")} cx="0.5" cy="0.5" r="0.75">
-          <stop offset="0.55" stopColor="#7a3f10" stopOpacity="0" />
-          <stop offset="1" stopColor="#7a3f10" stopOpacity="0.35" />
+        <radialGradient id={id("vig")} cx="0.5" cy="0.5" r="0.78">
+          <stop offset="0.6" stopColor="#3a1206" stopOpacity="0" />
+          <stop offset="1" stopColor="#3a1206" stopOpacity="0.5" />
         </radialGradient>
-        {/* Wood grain */}
-        <filter id={id("grain")} x="0" y="0" width="100%" height="100%">
+        {/* Oil-polish sheen */}
+        <linearGradient id={id("sheen")} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#fff" stopOpacity="0" />
+          <stop offset="0.28" stopColor="#ffe2bd" stopOpacity="0.2" />
+          <stop offset="0.5" stopColor="#fff" stopOpacity="0" />
+          <stop offset="0.8" stopColor="#ffe2bd" stopOpacity="0.1" />
+          <stop offset="1" stopColor="#fff" stopOpacity="0" />
+        </linearGradient>
+        {/* Chamfered edge of the block: light on top-left, dark on bottom-right */}
+        <linearGradient id={id("bevel")} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#f5b27a" />
+          <stop offset="0.5" stopColor="#7a3112" />
+          <stop offset="1" stopColor="#2e0f05" />
+        </linearGradient>
+
+        {/* Grain: broad dark bands, light bands, fine pores — all running lengthwise */}
+        <filter id={id("grainBand")} x="0" y="0" width="100%" height="100%">
           <feTurbulence
             type="fractalNoise"
-            baseFrequency="0.012 0.42"
+            baseFrequency="0.02 0.0035"
             numOctaves="3"
-            seed="7"
+            seed="11"
           />
           <feColorMatrix
             type="matrix"
-            values="0 0 0 0 0.42  0 0 0 0 0.24  0 0 0 0 0.07  0 0 0 1.25 -0.45"
+            values="0 0 0 0 0.2  0 0 0 0 0.05  0 0 0 0 0.02  0 0 0 2.6 -1.05"
           />
         </filter>
-        {/* Piece wood */}
-        <radialGradient id={id("disc")} cx="0.38" cy="0.32" r="0.85">
-          <stop offset="0" stopColor="#fff6dc" />
-          <stop offset="0.55" stopColor="#f3cf88" />
-          <stop offset="1" stopColor="#cf9440" />
+        <filter id={id("grainLight")} x="0" y="0" width="100%" height="100%">
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.1 0.006"
+            numOctaves="2"
+            seed="19"
+          />
+          <feColorMatrix
+            type="matrix"
+            values="0 0 0 0 0.98  0 0 0 0 0.6  0 0 0 0 0.32  0 0 0 2.4 -1.12"
+          />
+        </filter>
+        <filter id={id("grainFine")} x="0" y="0" width="100%" height="100%">
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.6 0.014"
+            numOctaves="2"
+            seed="3"
+          />
+          <feColorMatrix
+            type="matrix"
+            values="0 0 0 0 0.16  0 0 0 0 0.04  0 0 0 0 0.01  0 0 0 2.4 -0.95"
+          />
+        </filter>
+
+        {/* ---- Hương pieces ---- */}
+        <radialGradient id={id("faceR")} cx="0.38" cy="0.3" r="0.9">
+          <stop offset="0" stopColor="#f6c892" />
+          <stop offset="0.5" stopColor="#dd9355" />
+          <stop offset="1" stopColor="#b9622c" />
+        </radialGradient>
+        <radialGradient id={id("faceB")} cx="0.38" cy="0.3" r="0.9">
+          <stop offset="0" stopColor="#e9b27c" />
+          <stop offset="0.5" stopColor="#c47a3e" />
+          <stop offset="1" stopColor="#97491f" />
         </radialGradient>
         <radialGradient id={id("rimR")} cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0.8" stopColor="#7a1016" />
-          <stop offset="1" stopColor="#3d0709" />
+          <stop offset="0.78" stopColor="#8a2a12" />
+          <stop offset="1" stopColor="#3c1206" />
         </radialGradient>
         <radialGradient id={id("rimB")} cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0.8" stopColor="#2a211b" />
-          <stop offset="1" stopColor="#0b0705" />
+          <stop offset="0.78" stopColor="#4a2210" />
+          <stop offset="1" stopColor="#1a0a04" />
         </radialGradient>
+        {/* Turned edge of each disc */}
+        <linearGradient id={id("side")} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#f6c08a" />
+          <stop offset="0.55" stopColor="#8a3a16" />
+          <stop offset="1" stopColor="#3a1307" />
+        </linearGradient>
+        {/* Cheap, reusable wood grain for the pieces (rotated per piece below) */}
+        <pattern
+          id={id("pgrain")}
+          width="30"
+          height="30"
+          patternUnits="userSpaceOnUse"
+        >
+          <g fill="none" strokeLinecap="round">
+            <path
+              d="M3 0q3 7.5 0 15t0 15"
+              stroke="#5a2410"
+              strokeWidth="0.7"
+              opacity="0.38"
+            />
+            <path
+              d="M10 0q-3 7.5 0 15t0 15"
+              stroke="#5a2410"
+              strokeWidth="0.5"
+              opacity="0.28"
+            />
+            <path
+              d="M16.5 0q2.5 7.5 0 15t0 15"
+              stroke="#4a1a08"
+              strokeWidth="1.1"
+              opacity="0.3"
+            />
+            <path
+              d="M22 0q-2 7.5 0 15t0 15"
+              stroke="#6a2c10"
+              strokeWidth="0.5"
+              opacity="0.3"
+            />
+            <path
+              d="M27.5 0q1.5 7.5 0 15t0 15"
+              stroke="#5a2410"
+              strokeWidth="0.8"
+              opacity="0.32"
+            />
+            <path
+              d="M13 0q1 7.5 0 15t0 15"
+              stroke="#f3b987"
+              strokeWidth="0.6"
+              opacity="0.25"
+            />
+            <path
+              d="M25 0q-1 7.5 0 15t0 15"
+              stroke="#f3b987"
+              strokeWidth="0.5"
+              opacity="0.22"
+            />
+          </g>
+        </pattern>
+
         <filter id={id("shadow")} x="-40%" y="-40%" width="180%" height="190%">
           <feDropShadow
             dx="0"
             dy="3"
             stdDeviation="2.2"
             floodColor="#2b1200"
-            floodOpacity="0.5"
+            floodOpacity="0.55"
           />
         </filter>
         <filter id={id("glow")} x="-40%" y="-40%" width="180%" height="180%">
@@ -294,66 +408,72 @@ export default function Board({
           </feMerge>
         </filter>
         <linearGradient id={id("river")} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#2f7f86" stopOpacity="0" />
-          <stop offset="0.5" stopColor="#2f7f86" stopOpacity="0.22" />
-          <stop offset="1" stopColor="#2f7f86" stopOpacity="0" />
+          <stop offset="0" stopColor="#3a1206" stopOpacity="0" />
+          <stop offset="0.5" stopColor="#3a1206" stopOpacity="0.2" />
+          <stop offset="1" stopColor="#3a1206" stopOpacity="0" />
         </linearGradient>
       </defs>
 
-      {/* ---- Frame ---- */}
-      <rect width={W} height={H} rx={22} fill={ref("frame")} />
+      {/* ---- One solid block of Hương ---- */}
+      <g clipPath={ref("slab")}>
+        <rect {...rects} fill={ref("wood")} />
+        <rect {...rects} filter={ref("grainBand")} opacity={0.6} />
+        <rect {...rects} filter={ref("grainLight")} opacity={0.5} />
+        <rect {...rects} filter={ref("grainFine")} opacity={0.5} />
+        {figure.map((f, i) => {
+          const x = W * f.x;
+          const dx = W * f.bend;
+          return (
+            <path
+              key={`fg${i}`}
+              d={`M${x} 0C${x + dx} ${H * 0.3} ${x - dx} ${H * 0.65} ${x + dx * 0.4} ${H}`}
+              fill="none"
+              stroke="#4a1a08"
+              strokeWidth={f.w}
+              strokeLinecap="round"
+              opacity={f.o}
+            />
+          );
+        })}
+        <rect {...rects} fill={ref("sheen")} />
+        <rect {...rects} fill={ref("vig")} />
+      </g>
+      {/* chamfered edge */}
       <rect
-        x={5}
-        y={5}
-        width={W - 10}
-        height={H - 10}
-        rx={18}
+        x={1.25}
+        y={1.25}
+        width={W - 2.5}
+        height={H - 2.5}
+        rx={15}
         fill="none"
-        stroke={GOLD}
-        strokeWidth={1.5}
-        opacity={0.8}
+        stroke={ref("bevel")}
+        strokeWidth={2.5}
       />
+      {/* routed groove running around the face (same wood, no separate frame) */}
       <rect
         x={10}
-        y={10}
+        y={11.2}
         width={W - 20}
         height={H - 20}
-        rx={12}
-        fill={ref("wood")}
-      />
-      <rect
-        x={10}
-        y={10}
-        width={W - 20}
-        height={H - 20}
-        rx={12}
-        filter={ref("grain")}
-        opacity={0.55}
-      />
-      <rect
-        x={10}
-        y={10}
-        width={W - 20}
-        height={H - 20}
-        rx={12}
-        fill={ref("vig")}
-      />
-      <rect
-        x={10}
-        y={10}
-        width={W - 20}
-        height={H - 20}
-        rx={12}
+        rx={9}
         fill="none"
-        stroke="#2e0d09"
-        strokeWidth={2}
+        stroke={CARVE_LIGHT}
+        strokeWidth={1}
+        opacity={0.3}
       />
-      {corner(18, 18, 1, 1, "c1")}
-      {corner(W - 18, 18, -1, 1, "c2")}
-      {corner(18, H - 18, 1, -1, "c3")}
-      {corner(W - 18, H - 18, -1, -1, "c4")}
+      <rect
+        x={10}
+        y={10}
+        width={W - 20}
+        height={H - 20}
+        rx={9}
+        fill="none"
+        stroke="#2a0f05"
+        strokeWidth={1.8}
+        opacity={0.75}
+      />
 
-      {/* ---- River (ink wash) ---- */}
+      {/* ---- River (polished-in channel) ---- */}
       <rect
         x={M}
         y={M + CELL * 4}
@@ -370,44 +490,64 @@ export default function Board({
             .map((_, k) => `q${22} ${k % 2 ? 6 : -6} ${44} 0`)
             .join("")}`}
           fill="none"
-          stroke="#2f7f86"
+          stroke="#3a1206"
           strokeWidth={1}
-          opacity={0.22}
+          opacity={0.2}
           strokeLinecap="round"
         />
       ))}
 
       {/* ---- Grid ---- */}
-      <rect
-        x={tlx}
-        y={tly}
-        width={brx - tlx}
-        height={bry - tly}
-        rx={3}
-        fill="none"
-        stroke={INK}
-        strokeWidth={3.2}
-      />
+      <g>
+        <rect
+          x={tlx + 0.6}
+          y={tly + 0.9}
+          width={brx - tlx}
+          height={bry - tly}
+          rx={3}
+          fill="none"
+          stroke={CARVE_LIGHT}
+          strokeWidth={3.2}
+          opacity={0.38}
+        />
+        <rect
+          x={tlx}
+          y={tly}
+          width={brx - tlx}
+          height={bry - tly}
+          rx={3}
+          fill="none"
+          stroke={INK}
+          strokeWidth={3.2}
+          opacity={0.92}
+        />
+      </g>
       {els}
       {markers}
 
-      {/* River calligraphy */}
-      <g
-        fontFamily={SERIF}
-        fontSize={30}
-        fontWeight={700}
-        fill={INK}
-        opacity={0.78}
-        textAnchor="middle"
-        letterSpacing={6}
-      >
-        <text x={M + CELL * 2} y={M + CELL * 4.5 + 10}>
-          楚 河
-        </text>
-        <text x={M + CELL * 6} y={M + CELL * 4.5 + 10}>
-          漢 界
-        </text>
-      </g>
+      {/* River calligraphy (carved) */}
+      {[
+        { dx: 0.8, dy: 1.1, fill: CARVE_LIGHT, opacity: 0.45 },
+        { dx: 0, dy: 0, fill: INK, opacity: 0.88 },
+      ].map((t, i) => (
+        <g
+          key={`rv${i}`}
+          fontFamily={SERIF}
+          fontSize={30}
+          fontWeight={700}
+          fill={t.fill}
+          opacity={t.opacity}
+          textAnchor="middle"
+          letterSpacing={6}
+        >
+          <text x={M + CELL * 2 + t.dx} y={M + CELL * 4.5 + 10 + t.dy}>
+            楚 河
+          </text>
+          <text x={M + CELL * 6 + t.dx} y={M + CELL * 4.5 + 10 + t.dy}>
+            漢 界
+          </text>
+        </g>
+      ))}
       {/* Red seal */}
       <g transform={`translate(${W / 2 - 14} ${M + CELL * 4.5 - 14})`}>
         <rect
@@ -415,7 +555,7 @@ export default function Board({
           height={28}
           rx={4}
           fill={RED}
-          stroke="#7a0b10"
+          stroke="#5a070b"
           strokeWidth={1}
           transform="rotate(-6 14 14)"
         />
@@ -433,29 +573,47 @@ export default function Board({
         </text>
       </g>
 
-      {/* Coordinate numerals */}
+      {/* Coordinate numerals (carved) */}
       <g fontFamily={SERIF} fontSize={16} fontWeight={700} textAnchor="middle">
         {topNums.map((n, i) => (
-          <text
-            key={`t${i}`}
-            x={M + i * CELL}
-            y={M - 20}
-            fill={topIsRed ? RED : BLACK}
-            opacity={0.8}
-          >
-            {n}
-          </text>
+          <g key={`t${i}`}>
+            <text
+              x={M + i * CELL + 0.7}
+              y={M - 20 + 0.9}
+              fill={CARVE_LIGHT}
+              opacity={0.45}
+            >
+              {n}
+            </text>
+            <text
+              x={M + i * CELL}
+              y={M - 20}
+              fill={topIsRed ? NUM_RED : NUM_BLK}
+              opacity={0.92}
+            >
+              {n}
+            </text>
+          </g>
         ))}
         {botNums.map((n, i) => (
-          <text
-            key={`b${i}`}
-            x={M + i * CELL}
-            y={H - M + 29}
-            fill={topIsRed ? BLACK : RED}
-            opacity={0.8}
-          >
-            {n}
-          </text>
+          <g key={`b${i}`}>
+            <text
+              x={M + i * CELL + 0.7}
+              y={H - M + 29 + 0.9}
+              fill={CARVE_LIGHT}
+              opacity={0.45}
+            >
+              {n}
+            </text>
+            <text
+              x={M + i * CELL}
+              y={H - M + 29}
+              fill={topIsRed ? NUM_BLK : NUM_RED}
+              opacity={0.92}
+            >
+              {n}
+            </text>
+          </g>
         ))}
       </g>
 
@@ -467,7 +625,7 @@ export default function Board({
             bracket(x, y, sq)
           ) : (
             <g key={sq}>
-              <circle cx={x} cy={y} r={24} fill={GOLD} opacity={0.18} />
+              <circle cx={x} cy={y} r={24} fill={GOLD} opacity={0.22} />
               <circle
                 cx={x}
                 cy={y}
@@ -476,7 +634,7 @@ export default function Board({
                 stroke={GOLD}
                 strokeWidth={2}
                 strokeDasharray="4 5"
-                opacity={0.85}
+                opacity={0.95}
               />
             </g>
           );
@@ -489,7 +647,10 @@ export default function Board({
           const [x, y] = pos(ci, 9 - ri);
           const isSel = sel === sq;
           const isRed = p?.color === "r";
-          const ink = isRed ? RED : BLACK;
+          const ink = isRed ? PIECE_RED : BLACK;
+          // Give every piece its own grain direction / offset
+          const rot = ((ci * 53 + ri * 97) % 12) * 15;
+          const tx = (ci * 7 + ri * 11) % 30;
           return (
             <g key={sq} onClick={() => click(sq, p)} className="cursor-pointer">
               <circle cx={x} cy={y} r={27} fill="transparent" />
@@ -516,7 +677,7 @@ export default function Board({
                   </g>
                 ) : (
                   <g>
-                    <circle cx={x} cy={y} r={14} fill={JADE} opacity={0.18}>
+                    <circle cx={x} cy={y} r={14} fill={JADE} opacity={0.22}>
                       <animate
                         attributeName="r"
                         values="10;16;10"
@@ -558,17 +719,33 @@ export default function Board({
                     </circle>
                   )}
                   <g filter={ref("shadow")}>
-                    {/* rim */}
+                    {/* turned rim */}
                     <circle r={25.5} fill={ref(isRed ? "rimR" : "rimB")} />
-                    {/* wood face */}
-                    <circle r={22.5} fill={ref("disc")} />
+                    {/* chamfer */}
+                    <circle
+                      r={24}
+                      fill="none"
+                      stroke={ref("side")}
+                      strokeWidth={2.4}
+                    />
+                    {/* Hương wood face */}
+                    <circle r={22.5} fill={ref(isRed ? "faceR" : "faceB")} />
+                  </g>
+                  {/* grain on the face */}
+                  <g transform={`rotate(${rot}) translate(${tx} 0)`}>
+                    <circle
+                      cx={-tx}
+                      r={22.5}
+                      fill={ref("pgrain")}
+                      opacity={0.7}
+                    />
                   </g>
                   <circle
                     r={22.5}
                     fill="none"
-                    stroke="#fff8e1"
+                    stroke="#ffd8a6"
                     strokeWidth={1}
-                    opacity={0.7}
+                    opacity={0.55}
                   />
                   {/* engraved inner ring */}
                   <circle
@@ -585,7 +762,7 @@ export default function Board({
                     strokeWidth={0.5}
                     opacity={0.5}
                   />
-                  {/* carved glyph: highlight + ink */}
+                  {/* carved glyph: light lip + ink */}
                   <text
                     x={0.8}
                     y={10.2}
@@ -593,8 +770,8 @@ export default function Board({
                     fontSize={26}
                     fontWeight={700}
                     fontFamily={SERIF}
-                    fill="#fff7dc"
-                    opacity={0.9}
+                    fill="#f7cfa3"
+                    opacity={0.6}
                   >
                     {CH[p.type][isRed ? 0 : 1]}
                   </text>
@@ -605,17 +782,19 @@ export default function Board({
                     fontWeight={700}
                     fontFamily={SERIF}
                     fill={ink}
+                    stroke={ink}
+                    strokeWidth={0.4}
                   >
                     {CH[p.type][isRed ? 0 : 1]}
                   </text>
-                  {/* gloss */}
+                  {/* satin oil gloss */}
                   <ellipse
                     cx={-6}
                     cy={-12}
                     rx={10}
                     ry={4.5}
                     fill="#fff"
-                    opacity={0.28}
+                    opacity={0.2}
                     transform="rotate(-25 -6 -12)"
                   />
                 </g>

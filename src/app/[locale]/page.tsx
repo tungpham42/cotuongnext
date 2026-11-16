@@ -100,7 +100,7 @@ export default function Lobby() {
               {t("heroEyebrow")}
             </p>
 
-            <h1 className="mt-4 bg-gradient-to-br from-bone via-bone to-brass bg-clip-text font-display text-5xl font-bold leading-[1.02] tracking-tight text-transparent sm:text-6xl xl:text-7xl">
+            <h1 className="mt-4 bg-gradient-to-br from-bone via-bone to-brass bg-clip-text font-display text-5xl font-bold leading-[1.02] tracking-tight sm:text-6xl xl:text-7xl">
               {t("heroTitle")}
             </h1>
             <p className="mx-auto mt-4 max-w-lg text-lg text-mist lg:mx-0">

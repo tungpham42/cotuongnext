@@ -4,12 +4,14 @@ import {
   Bricolage_Grotesque,
   Noto_Serif_TC,
 } from "next/font/google";
-import "./globals.css";
+import "../globals.css";
 import AuthProvider from "@/components/AuthProvider";
 import Nav from "@/components/Nav";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { localeMeta, locales, type Locale } from "@/i18n/config";
+import Script from "next/script";
 
 // Body: friendly, full Vietnamese diacritics support
 const body = Be_Vietnam_Pro({
@@ -46,6 +48,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: t("title"),
     description: t("description"),
+    metadataBase: new URL(
+      process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
+    ),
     openGraph: {
       type: "website",
       siteName: t("siteName"),
@@ -55,6 +60,14 @@ export async function generateMetadata(): Promise<Metadata> {
       alternateLocale: locales
         .filter((l) => l !== locale)
         .map((l) => OG_LOCALE[l]),
+      images: [
+        {
+          url: `/${locale}/og.png`,
+          width: 1200,
+          height: 630,
+          alt: t("ogTitle"),
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
@@ -81,6 +94,15 @@ export default async function RootLayout({
       lang={localeMeta[locale].htmlLang}
       className={`${body.variable} ${display.variable} ${han.variable}`}
     >
+      <head>
+        <Script
+          id="adsense-script"
+          async
+          strategy="afterInteractive"
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID}`}
+          crossOrigin="anonymous"
+        />
+      </head>
       <body suppressHydrationWarning>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <AuthProvider>
@@ -90,6 +112,9 @@ export default async function RootLayout({
             </main>
           </AuthProvider>
         </NextIntlClientProvider>
+        {process.env.NEXT_PUBLIC_GA_ID && (
+          <GoogleAnalytics ga_id={process.env.NEXT_PUBLIC_GA_ID} />
+        )}
       </body>
     </html>
   );

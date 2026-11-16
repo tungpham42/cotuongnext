@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useRouter } from "@/i18n/navigation";
+import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
+import { LockIcon } from "@/components/Icons";
 import {
   collection,
   limit,
@@ -63,12 +64,8 @@ export default function Lobby() {
     return (
       <section className="card mx-auto mt-10 flex max-w-md flex-col items-center gap-4 px-6 py-10 text-center">
         <span className="piece size-20 text-5xl text-lacquer">戰</span>
-        <h1 className="font-display text-3xl font-bold">
-          {t("signInTitle")}
-        </h1>
-        <p className="text-mist">
-          {t("signInBody")}
-        </p>
+        <h1 className="font-display text-3xl font-bold">{t("signInTitle")}</h1>
+        <p className="text-mist">{t("signInBody")}</p>
         <Link href="/login" className="btn mt-2">
           {t("signInCta")}
         </Link>
@@ -83,9 +80,7 @@ export default function Lobby() {
           <h1 className="font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl">
             {t("heroTitle")}
           </h1>
-          <p className="mt-3 text-lg text-mist">
-            {t("heroBody")}
-          </p>
+          <p className="mt-3 text-lg text-mist">{t("heroBody")}</p>
         </div>
 
         <button
@@ -131,7 +126,9 @@ export default function Lobby() {
       <div className="grid gap-8 lg:grid-cols-[1fr_340px]">
         <section>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-display text-2xl font-semibold">{t("openRooms")}</h2>
+            <h2 className="font-display text-2xl font-semibold">
+              {t("openRooms")}
+            </h2>
             <span className="flex items-center gap-2 text-sm text-mist">
               <span className="size-2 animate-pulse rounded-full bg-river" />
               {t("live")}
@@ -155,20 +152,20 @@ export default function Lobby() {
             </ul>
           ) : (
             <div className="card px-6 py-10 text-center">
-              <p className="font-display text-xl font-semibold">{t("noRooms")}</p>
-              <p className="mt-1 text-mist">
-                {t("noRoomsBody")}
+              <p className="font-display text-xl font-semibold">
+                {t("noRooms")}
               </p>
+              <p className="mt-1 text-mist">{t("noRoomsBody")}</p>
             </div>
           )}
         </section>
 
         <section className="card h-fit space-y-4 p-5 lg:sticky lg:top-6">
           <div>
-            <h2 className="font-display text-xl font-semibold">{t("hostTitle")}</h2>
-            <p className="text-sm text-mist">
-              {t("hostBody")}
-            </p>
+            <h2 className="font-display text-xl font-semibold">
+              {t("hostTitle")}
+            </h2>
+            <p className="text-sm text-mist">{t("hostBody")}</p>
           </div>
 
           <label className="block space-y-1.5">
@@ -264,9 +261,11 @@ function RoomRow({ r }: { r: Room }) {
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium">
             {r.hasPass && (
-              <span role="img" aria-label={t("passwordProtected")}>
-                🔒{" "}
-              </span>
+              <LockIcon
+                role="img"
+                aria-label={t("passwordProtected")}
+                className="mr-1 inline-block -translate-y-px"
+              />
             )}
             {r.isQuick ? t("quickRoomName") : r.name}{" "}
             <span className="text-mist">#{r.code}</span>

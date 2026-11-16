@@ -1,23 +1,15 @@
 // src/i18n/request.ts
+import { hasLocale } from "next-intl";
 import { getRequestConfig } from "next-intl/server";
-import { cookies, headers } from "next/headers";
-import { defaultLocale, isLocale, LOCALE_COOKIE, type Locale } from "./config";
+import { routing } from "./routing";
 
-function fromAcceptLanguage(header: string | null): Locale | null {
-  if (!header) return null;
-  const first = header.split(",")[0]?.trim().toLowerCase() ?? "";
-  if (first.startsWith("en")) return "en";
-  if (first.startsWith("vi")) return "vi";
-  if (first.startsWith("zh")) return "zh";
-  return null;
-}
-
-export default getRequestConfig(async () => {
-  const cookieLocale = (await cookies()).get(LOCALE_COOKIE)?.value;
-  const locale: Locale = isLocale(cookieLocale)
-    ? cookieLocale
-    : (fromAcceptLanguage((await headers()).get("accept-language")) ??
-      defaultLocale);
+// The locale now comes from the URL (/vi/..., /zh/..., or no prefix = en). Cookie / Accept-Language
+// detection is handled by the middleware, so it is no longer needed here.
+export default getRequestConfig(async ({ requestLocale }) => {
+  const requested = await requestLocale;
+  const locale = hasLocale(routing.locales, requested)
+    ? requested
+    : routing.defaultLocale;
 
   return {
     locale,

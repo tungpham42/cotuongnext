@@ -11,6 +11,7 @@ import {
 import { db } from "@/lib/firebase";
 import { Profile, tierOf } from "@/lib/types";
 import { useDisplayName } from "@/lib/useDisplayName";
+import { TierIcon } from "@/components/Icons";
 
 export default function Ranking() {
   const t = useTranslations("ranking");
@@ -52,7 +53,10 @@ export default function Ranking() {
                 <td>{p.draws}</td>
                 <td>{p.losses}</td>
                 <td>
-                  {tier.icon} {tTier(tier.key)}
+                  <span className="inline-flex items-center gap-1.5">
+                    <TierIcon name={tier.icon} className="shrink-0" />
+                    {tTier(tier.key)}
+                  </span>
                 </td>
               </tr>
             );

@@ -1,11 +1,12 @@
 "use client";
-import Link from "next/link";
-import { signOut } from "firebase/auth";
+import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { auth } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
 import { useDisplayName } from "@/lib/useDisplayName";
-import LanguageSwitcher from "./LanguageSwitcher";
+import LocaleSwitcher from "./LocaleSwitcher";
+import SoundToggle from "./SoundToggle";
+import UserMenu from "./UserMenu";
+import { BrandIcon } from "./Icons";
 
 export default function Nav() {
   const { user } = useAuth();
@@ -14,7 +15,8 @@ export default function Nav() {
   return (
     <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-stone-700 px-4 py-3 sm:px-6">
       <Link href="/" className="text-lg font-bold text-amber-400">
-        ♟ {t("brand")}
+        <BrandIcon className="mr-1.5 inline-block -translate-y-px" />
+        {t("brand")}
       </Link>
       <Link href="/play-ai" className="hover:text-amber-300">
         {t("playAi")}
@@ -24,20 +26,17 @@ export default function Nav() {
       </Link>
       <div className="ml-auto flex items-center gap-3">
         {user ? (
-          <>
-            <span className="text-sm text-stone-300">
-              {dn(user.displayName) || user.email}
-            </span>
-            <button className="btn-ghost" onClick={() => signOut(auth)}>
-              {t("signOut")}
-            </button>
-          </>
+          <UserMenu
+            label={dn(user.displayName) || user.email || ""}
+            email={user.email}
+          />
         ) : (
           <Link className="btn" href="/login">
             {t("signIn")}
           </Link>
         )}
-        <LanguageSwitcher />
+        <SoundToggle />
+        <LocaleSwitcher />
       </div>
     </nav>
   );

@@ -1,18 +1,22 @@
 "use client";
-import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { ComponentType, FormEvent, useState } from "react";
+import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import {
   createUserWithEmailAndPassword,
+  FacebookAuthProvider,
   GoogleAuthProvider,
   signInAnonymously,
   signInWithEmailAndPassword,
   signInWithPopup,
 } from "firebase/auth";
+import { FcGoogle } from "react-icons/fc";
+import { FaFacebook } from "react-icons/fa";
 import { auth } from "@/lib/firebase";
+import { MailIcon, SpinnerIcon, UserIcon } from "@/components/Icons";
 
 type Mode = "in" | "up";
-type Method = "google" | "guest" | "email";
+type Method = "google" | "facebook" | "guest" | "email";
 
 /** Map Firebase error codes to keys in the "authErrors" messages namespace. */
 function authErrorKey(e: unknown): string | null {
@@ -31,6 +35,8 @@ function authErrorKey(e: unknown): string | null {
       return "tooMany";
     case "auth/operation-not-allowed":
       return "notEnabled";
+    case "auth/account-exists-with-different-credential":
+      return "accountExistsWithDifferentCredential";
     case "auth/popup-closed-by-user":
     case "auth/cancelled-popup-request":
       return null; // the player closed the popup on purpose
@@ -38,6 +44,45 @@ function authErrorKey(e: unknown): string | null {
       return "generic";
   }
 }
+
+type Social = {
+  method: Exclude<Method, "email">;
+  icon: ComponentType<{ className?: string }>;
+  className?: string; // brand colours; falls back to the default ghost look
+  label: string; // message key
+  opening: string; // message key shown while busy
+  run: () => Promise<unknown>;
+};
+
+const SOCIALS: Social[] = [
+  {
+    method: "google",
+    icon: FcGoogle,
+    // White button, dark grey text, light grey border.
+    className:
+      "!border-[#dadce0] !bg-white !text-[#3c4043] hover:!bg-[#f8f9fa]",
+    label: "google",
+    opening: "googleOpening",
+    run: () => signInWithPopup(auth, new GoogleAuthProvider()),
+  },
+  {
+    method: "facebook",
+    icon: FaFacebook,
+    // Facebook blue with white text.
+    className:
+      "!border-[#1877F2] !bg-[#1877F2] !text-white hover:!bg-[#166fe5]",
+    label: "facebook",
+    opening: "facebookOpening",
+    run: () => signInWithPopup(auth, new FacebookAuthProvider()),
+  },
+  {
+    method: "guest",
+    icon: UserIcon,
+    label: "guest",
+    opening: "guestOpening",
+    run: () => signInAnonymously(auth),
+  },
+];
 
 export default function Login() {
   const router = useRouter();
@@ -77,30 +122,28 @@ export default function Login() {
         <h1 className="font-display text-3xl font-bold">
           {mode === "in" ? t("signIn") : t("createAccount")}
         </h1>
-        <p className="text-sm text-mist">
-          {t("guestsHint")}
-        </p>
+        <p className="text-sm text-mist">{t("guestsHint")}</p>
       </div>
 
       <div className="space-y-2">
-        <button
-          type="button"
-          className="btn-ghost w-full"
-          disabled={busy !== null}
-          onClick={() =>
-            go("google", () => signInWithPopup(auth, new GoogleAuthProvider()))
-          }
-        >
-          {busy === "google" ? t("googleOpening") : t("google")}
-        </button>
-        <button
-          type="button"
-          className="btn-ghost w-full"
-          disabled={busy !== null}
-          onClick={() => go("guest", () => signInAnonymously(auth))}
-        >
-          {busy === "guest" ? t("guestOpening") : t("guest")}
-        </button>
+        {SOCIALS.map(
+          ({ method, icon: Icon, className, label, opening, run }) => (
+            <button
+              key={method}
+              type="button"
+              className={`btn-ghost w-full ${className ?? ""}`}
+              disabled={busy !== null}
+              onClick={() => go(method, run)}
+            >
+              {busy === method ? (
+                <SpinnerIcon className="text-xl" />
+              ) : (
+                <Icon className="text-xl" />
+              )}
+              {busy === method ? t(opening) : t(label)}
+            </button>
+          ),
+        )}
       </div>
 
       <div className="flex items-center gap-3 text-sm text-mist">
@@ -130,6 +173,11 @@ export default function Login() {
           onChange={(e) => setPw(e.target.value)}
         />
         <button className="btn w-full" disabled={busy !== null}>
+          {busy === "email" ? (
+            <SpinnerIcon className="text-xl" />
+          ) : (
+            <MailIcon className="text-xl" />
+          )}
           {busy === "email"
             ? t("wait")
             : mode === "in"

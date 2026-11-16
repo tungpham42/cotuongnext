@@ -34,12 +34,12 @@ export interface Profile {
   karma: number;
 }
 export const TIERS = [
-  { min: 0, key: "bronze", icon: "🛡️" },
-  { min: 100, key: "silver", icon: "⭐" },
-  { min: 300, key: "gold", icon: "🏅" },
-  { min: 700, key: "platinum", icon: "🏆" },
-  { min: 1500, key: "diamond", icon: "💎" },
-  { min: 3000, key: "legend", icon: "👑" },
+  { min: 0, key: "bronze", icon: "shield" as const },
+  { min: 100, key: "silver", icon: "star" as const },
+  { min: 300, key: "gold", icon: "medal" as const },
+  { min: 700, key: "platinum", icon: "trophy" as const },
+  { min: 1500, key: "diamond", icon: "gem" as const },
+  { min: 3000, key: "legend", icon: "crown" as const },
 ];
 export const tierOf = (karma: number) =>
   [...TIERS].reverse().find((t) => karma >= t.min)!;

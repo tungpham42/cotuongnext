@@ -1,6 +1,7 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Xiangqi } from "@/lib/xiangqi";
+import { playSound, unlockAudio } from "@/lib/sound";
 
 const CELL = 56,
   M = 36;
@@ -50,6 +51,24 @@ export default function Board({
   const [sel, setSel] = useState<string | null>(null);
   const board = g.board();
   const legal = useMemo(() => g.moves({ verbose: true }), [g]);
+
+  // Play a sound whenever the position changes (own, opponent's and AI moves alike).
+  const prev = useRef<{ fen: string; pieces: number } | null>(null);
+  const pieces = board.flat().filter(Boolean).length;
+  useEffect(() => {
+    const before = prev.current;
+    prev.current = { fen, pieces };
+    if (!before || before.fen === fen) return; // initial render / no change
+    if (g.game_over()) {
+      if (g.in_checkmate()) {
+        // The side to move has been mated.
+        playSound(playAs ? (g.turn() === playAs ? "lose" : "win") : "check");
+      } else playSound("draw");
+    } else if (g.in_check()) playSound("check");
+    else if (pieces < before.pieces) playSound("capture");
+    else playSound("move");
+  }, [fen, pieces, g, playAs]);
+
   const targets = new Set(legal.filter((m) => m.from === sel).map((m) => m.to));
 
   const pos = (file: number, rank: number): [number, number] => [
@@ -69,16 +88,18 @@ export default function Board({
   );
 
   const click = (sq: string, piece: { color: string } | null) => {
+    unlockAudio();
     if (sel && targets.has(sq)) {
       onMove(sel, sq);
       setSel(null);
       return;
     }
-    setSel(
+    const next =
       piece && playAs && piece.color === playAs && g.turn() === playAs
         ? sq
-        : null,
-    );
+        : null;
+    if (next && next !== sel) playSound("select");
+    setSel(next);
   };
 
   const els: React.ReactNode[] = [];

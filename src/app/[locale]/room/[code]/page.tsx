@@ -9,7 +9,8 @@ import {
   orderBy,
   query,
 } from "firebase/firestore";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
+import { SideDot } from "@/components/Icons";
 import { useTranslations } from "next-intl";
 import Board, { boardWidth } from "@/components/Board";
 import { useAuth } from "@/components/AuthProvider";
@@ -137,7 +138,7 @@ export default function RoomPage({
         className={`flex justify-between rounded-lg px-4 py-2 ${turn === c && room.status === "playing" ? "bg-amber-700" : "bg-stone-800"}`}
       >
         <span>
-          {c === "r" ? "🔴" : "⚫"}{" "}
+          <SideDot side={c} className="mr-1.5 inline-block -translate-y-px" />
           {p ? `${dn(p.name)} (${p.elo})` : t("waitingSeat")}
         </span>
         <span className="font-mono text-lg">{fmt(left(c))}</span>

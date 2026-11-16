@@ -4,8 +4,8 @@ import AuthProvider from "@/components/AuthProvider";
 import Nav from "@/components/Nav";
 
 export const metadata: Metadata = {
-  title: "Cờ Tướng Online",
-  description: "Thi đấu cờ tướng trực tuyến, chơi với máy, xếp hạng Elo.",
+  title: "Xiangqi Online",
+  description: "Play Xiangqi online, play against the computer, Elo rankings.",
 };
 
 export default function RootLayout({
@@ -14,7 +14,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="vi">
+    <html lang="en">
       <body>
         <AuthProvider>
           <Nav />

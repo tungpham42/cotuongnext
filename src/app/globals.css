@@ -1,0 +1,5 @@
+@import "tailwindcss";
+body { @apply bg-stone-900 text-stone-100; }
+.btn { @apply rounded-lg bg-amber-600 px-4 py-2 font-medium text-white hover:bg-amber-500 disabled:opacity-50; }
+.btn-ghost { @apply rounded-lg border border-stone-600 px-4 py-2 hover:bg-stone-800 disabled:opacity-50; }
+.input { @apply rounded-lg border border-stone-600 bg-stone-800 px-3 py-2 w-full; }

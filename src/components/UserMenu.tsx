@@ -4,6 +4,7 @@ import { signOut } from "firebase/auth";
 import { useTranslations } from "next-intl";
 import { auth } from "@/lib/firebase";
 import { useDismiss } from "@/lib/useDismiss";
+import { useAuth } from "./AuthProvider";
 import { ChevronDownIcon } from "./Icons";
 
 type UserMenuProps = {
@@ -15,6 +16,7 @@ type UserMenuProps = {
 
 export default function UserMenu({ label, email }: UserMenuProps) {
   const t = useTranslations("nav");
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -31,6 +33,10 @@ export default function UserMenu({ label, email }: UserMenuProps) {
     setOpen(false);
     signOut(auth).catch((err) => console.error("Sign out failed", err));
   };
+
+  // Guests (anonymous users) are never listed in the menu; they get a sign-in
+  // link in the Nav instead. Placed after all hooks to keep hook order stable.
+  if (!user || user.isAnonymous) return null;
 
   const showEmail = Boolean(email) && email !== label;
 

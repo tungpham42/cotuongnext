@@ -17,27 +17,26 @@ const NAV_LINKS = [
 
 const LINK_CLASS = "hover:text-amber-300";
 
-/** User menu (when signed in) plus a sign-in link for guests and signed-out visitors. */
+/**
+ * User menu for real (non-anonymous) accounts, plus a sign-in link for guests
+ * and signed-out visitors. Guests are never shown by name.
+ */
 function AuthControls({ user }: { user: User | null }) {
   const t = useTranslations("nav");
   const displayName = useDisplayName();
 
-  // Anonymous users still get the menu (their guest name), plus a prompt to sign in.
-  const showSignIn = !user || user.isAnonymous;
+  const isGuest = !user || user.isAnonymous;
 
   return (
     <>
-      {user && (
+      {user && !user.isAnonymous && (
         <UserMenu
           label={displayName(user.displayName) || user.email || ""}
           email={user.email}
         />
       )}
-      {showSignIn && (
-        <Link
-          href="/login"
-          className={user ? "btn-ghost !py-1.5 text-sm" : "btn"}
-        >
+      {isGuest && (
+        <Link href="/login" className="btn">
           {t("signIn")}
         </Link>
       )}

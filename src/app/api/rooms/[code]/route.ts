@@ -3,6 +3,7 @@ import { Xiangqi } from "@/lib/xiangqi";
 import { adminDb } from "@/lib/firebase-admin";
 import {
   finishGame,
+  freshGameState,
   handle,
   hashPass,
   HttpError,
@@ -10,7 +11,10 @@ import {
 } from "@/lib/server";
 import { MOVE_LIMIT, Room } from "@/lib/types";
 
-/** One endpoint, many actions: join | move | resign | draw-offer | draw-accept | timeout */
+/**
+ * One endpoint, many actions:
+ * join | move | resign | draw-offer | draw-accept | timeout | rematch | rematch-decline
+ */
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ code: string }> },
@@ -52,6 +56,30 @@ export async function POST(
         return;
       }
       if (!me) throw new HttpError(403, "NOT_A_PLAYER");
+
+      // Rematch: only once the game is over, and it reuses this same room.
+      if (body.type === "rematch" || body.type === "rematch-decline") {
+        if (room.status !== "finished")
+          throw new HttpError(400, "GAME_NOT_FINISHED");
+        if (body.type === "rematch-decline") {
+          // Either player can decline the other's offer or withdraw their own.
+          tx.update(ref, { rematchOffer: null });
+          return;
+        }
+        if (room.rematchOffer && room.rematchOffer !== me) {
+          // Opponent already asked: start the next game, swapping colours.
+          tx.update(ref, {
+            ...freshGameState(now),
+            redUid: room.blackUid,
+            blackUid: room.redUid,
+            gameNo: (room.gameNo ?? 1) + 1,
+          });
+          return;
+        }
+        tx.update(ref, { rematchOffer: me });
+        return;
+      }
+
       if (room.status !== "playing")
         throw new HttpError(400, "GAME_NOT_ACTIVE");
       const other = me === "r" ? "black" : "red";

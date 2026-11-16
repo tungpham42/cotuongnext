@@ -47,6 +47,8 @@ export async function POST(req: NextRequest) {
         blackTime: INITIAL_TIME,
         lastMoveAt: Date.now(),
         drawOffer: null,
+        rematchOffer: null,
+        gameNo: 1,
         createdAt: Date.now(),
       });
       return c;

@@ -21,6 +21,10 @@ export interface Room {
   blackTime: number;
   lastMoveAt: number;
   drawOffer: "r" | "b" | null;
+  /** Who asked for a rematch once the game is finished (absent on older rooms). */
+  rematchOffer?: "r" | "b" | null;
+  /** How many games have been played in this room (absent on older rooms = 1). */
+  gameNo?: number;
   createdAt: number;
 }
 export interface Profile {

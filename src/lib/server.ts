@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { FieldValue, Transaction } from "firebase-admin/firestore";
 import { adminAuth, adminDb } from "./firebase-admin";
-import { Room } from "./types";
+import { INITIAL_TIME, Room, START_FEN } from "./types";
 
 export class HttpError extends Error {
   constructor(
@@ -59,5 +59,22 @@ export function finishGame(
   upd(room.blackUid!, eb + K * (1 - sR - (1 - expR)), 1 - sR);
   return { status: "finished", result, reason };
 }
+/**
+ * Board/clock state for a fresh game. Used to reset an existing room for a
+ * rematch, so the same room (code, chat, spectators) carries on.
+ */
+export const freshGameState = (now: number): Partial<Room> => ({
+  status: "playing",
+  result: null,
+  reason: null,
+  fen: START_FEN,
+  moves: [],
+  lastMove: null,
+  redTime: INITIAL_TIME,
+  blackTime: INITIAL_TIME,
+  lastMoveAt: now,
+  drawOffer: null,
+  rematchOffer: null,
+});
 export const hashPass = (p: string) =>
   createHash("sha256").update(p).digest("hex");

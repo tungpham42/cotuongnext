@@ -141,7 +141,14 @@
     "offerDraw": "Offer draw",
     "acceptDraw": "Accept draw",
     "chatPlaceholder": "Chat…",
-    "send": "Send"
+    "send": "Send",
+    "rematch": "Play again",
+    "rematchHint": "Same opponent, colours swap.",
+    "rematchOffered": "Your opponent wants a rematch.",
+    "acceptRematch": "Accept rematch",
+    "declineRematch": "Decline",
+    "rematchWaiting": "Rematch requested… waiting for your opponent.",
+    "cancelRematch": "Cancel"
   },
   "reasons": {
     "timeout": "timeout",
@@ -164,6 +171,7 @@
     "NO_DRAW_OFFER": "There is no draw offer.",
     "TIME_NOT_UP": "Time has not run out yet.",
     "INVALID_ACTION": "Invalid action.",
+    "GAME_NOT_FINISHED": "The game is not finished yet.",
     "UNKNOWN": "Something went wrong. Please try again."
   },
   "common": {

@@ -141,7 +141,14 @@
     "offerDraw": "提和",
     "acceptDraw": "同意和棋",
     "chatPlaceholder": "聊天…",
-    "send": "发送"
+    "send": "发送",
+    "rematch": "再来一局",
+    "rematchHint": "同一对手，双方换边。",
+    "rematchOffered": "对手想再来一局。",
+    "acceptRematch": "接受再战",
+    "declineRematch": "拒绝",
+    "rematchWaiting": "已发出再战邀请…等待对手回应。",
+    "cancelRematch": "取消"
   },
   "reasons": {
     "timeout": "超时",
@@ -164,6 +171,7 @@
     "NO_DRAW_OFFER": "当前没有和棋提议。",
     "TIME_NOT_UP": "时间还没用完。",
     "INVALID_ACTION": "无效操作。",
+    "GAME_NOT_FINISHED": "对局尚未结束。",
     "UNKNOWN": "出错了，请重试。"
   },
   "common": {

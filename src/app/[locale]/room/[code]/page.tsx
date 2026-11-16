@@ -228,6 +228,45 @@ export default function RoomPage({
             )}
           </div>
         )}
+        {me && room.status === "finished" && (
+          <div className="space-y-2">
+            {room.rematchOffer && room.rematchOffer !== me ? (
+              <>
+                <p className="text-sm text-stone-300">{t("rematchOffered")}</p>
+                <div className="flex flex-wrap gap-2">
+                  <button className="btn" onClick={() => act("rematch")}>
+                    {t("acceptRematch")}
+                  </button>
+                  <button
+                    className="btn-ghost"
+                    onClick={() => act("rematch-decline")}
+                  >
+                    {t("declineRematch")}
+                  </button>
+                </div>
+              </>
+            ) : room.rematchOffer === me ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm text-stone-300">{t("rematchWaiting")}</p>
+                <button
+                  className="btn-ghost"
+                  onClick={() => act("rematch-decline")}
+                >
+                  {t("cancelRematch")}
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                <button className="btn" onClick={() => act("rematch")}>
+                  {t("rematch")}
+                </button>
+                <span className="text-sm text-stone-400">
+                  {t("rematchHint")}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
         {err && <p className="text-red-400">{err}</p>}
         <div className="rounded-lg bg-stone-800 p-3">
           <div className="mb-2 h-48 space-y-1 overflow-y-auto text-sm">

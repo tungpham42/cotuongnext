@@ -141,7 +141,14 @@
     "offerDraw": "Xin hòa",
     "acceptDraw": "Chấp nhận hòa",
     "chatPlaceholder": "Trò chuyện…",
-    "send": "Gửi"
+    "send": "Gửi",
+    "rematch": "Chơi lại",
+    "rematchHint": "Cùng đối thủ, đổi bên.",
+    "rematchOffered": "Đối thủ muốn chơi lại.",
+    "acceptRematch": "Đồng ý chơi lại",
+    "declineRematch": "Từ chối",
+    "rematchWaiting": "Đã gửi lời mời chơi lại… đang chờ đối thủ.",
+    "cancelRematch": "Hủy"
   },
   "reasons": {
     "timeout": "hết giờ",
@@ -164,6 +171,7 @@
     "NO_DRAW_OFFER": "Không có lời xin hòa nào.",
     "TIME_NOT_UP": "Chưa hết giờ.",
     "INVALID_ACTION": "Thao tác không hợp lệ.",
+    "GAME_NOT_FINISHED": "Ván cờ chưa kết thúc.",
     "UNKNOWN": "Đã có lỗi xảy ra. Vui lòng thử lại."
   },
   "common": {

@@ -1,0 +1,288 @@
+From c125027f914406aae0e8082785aec1265fd81e9e Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 16 Nov 2026 10:00:47 +0000
+Subject: [PATCH] Add rematch: replay with the same opponent in the same room
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MVb8cRkwt7PwNSWv88tTsS
+---
+ messages/en.json                      | 10 ++++++-
+ messages/vi.json                      | 10 ++++++-
+ messages/zh.json                      | 10 ++++++-
+ src/app/[locale]/room/[code]/page.tsx | 39 +++++++++++++++++++++++++++
+ src/app/api/match/find/route.ts       |  2 ++
+ src/app/api/rooms/[code]/route.ts     | 30 ++++++++++++++++++++-
+ src/app/api/rooms/route.ts            |  2 ++
+ src/lib/server.ts                     | 19 ++++++++++++-
+ src/lib/types.ts                      |  4 +++
+ 9 files changed, 121 insertions(+), 5 deletions(-)
+
+diff --git a/messages/en.json b/messages/en.json
+index 81e58c5..31db404 100644
+--- a/messages/en.json
++++ b/messages/en.json
+@@ -141,7 +141,14 @@
+     "offerDraw": "Offer draw",
+     "acceptDraw": "Accept draw",
+     "chatPlaceholder": "Chat…",
+-    "send": "Send"
++    "send": "Send",
++    "rematch": "Play again",
++    "rematchHint": "Same opponent, colours swap.",
++    "rematchOffered": "Your opponent wants a rematch.",
++    "acceptRematch": "Accept rematch",
++    "declineRematch": "Decline",
++    "rematchWaiting": "Rematch requested… waiting for your opponent.",
++    "cancelRematch": "Cancel"
+   },
+   "reasons": {
+     "timeout": "timeout",
+@@ -164,6 +171,7 @@
+     "NO_DRAW_OFFER": "There is no draw offer.",
+     "TIME_NOT_UP": "Time has not run out yet.",
+     "INVALID_ACTION": "Invalid action.",
++    "GAME_NOT_FINISHED": "The game is not finished yet.",
+     "UNKNOWN": "Something went wrong. Please try again."
+   },
+   "common": {
+diff --git a/messages/vi.json b/messages/vi.json
+index 71d7fef..b233e09 100644
+--- a/messages/vi.json
++++ b/messages/vi.json
+@@ -141,7 +141,14 @@
+     "offerDraw": "Xin hòa",
+     "acceptDraw": "Chấp nhận hòa",
+     "chatPlaceholder": "Trò chuyện…",
+-    "send": "Gửi"
++    "send": "Gửi",
++    "rematch": "Chơi lại",
++    "rematchHint": "Cùng đối thủ, đổi bên.",
++    "rematchOffered": "Đối thủ muốn chơi lại.",
++    "acceptRematch": "Đồng ý chơi lại",
++    "declineRematch": "Từ chối",
++    "rematchWaiting": "Đã gửi lời mời chơi lại… đang chờ đối thủ.",
++    "cancelRematch": "Hủy"
+   },
+   "reasons": {
+     "timeout": "hết giờ",
+@@ -164,6 +171,7 @@
+     "NO_DRAW_OFFER": "Không có lời xin hòa nào.",
+     "TIME_NOT_UP": "Chưa hết giờ.",
+     "INVALID_ACTION": "Thao tác không hợp lệ.",
++    "GAME_NOT_FINISHED": "Ván cờ chưa kết thúc.",
+     "UNKNOWN": "Đã có lỗi xảy ra. Vui lòng thử lại."
+   },
+   "common": {
+diff --git a/messages/zh.json b/messages/zh.json
+index 12469db..f412bc8 100644
+--- a/messages/zh.json
++++ b/messages/zh.json
+@@ -141,7 +141,14 @@
+     "offerDraw": "提和",
+     "acceptDraw": "同意和棋",
+     "chatPlaceholder": "聊天…",
+-    "send": "发送"
++    "send": "发送",
++    "rematch": "再来一局",
++    "rematchHint": "同一对手，双方换边。",
++    "rematchOffered": "对手想再来一局。",
++    "acceptRematch": "接受再战",
++    "declineRematch": "拒绝",
++    "rematchWaiting": "已发出再战邀请…等待对手回应。",
++    "cancelRematch": "取消"
+   },
+   "reasons": {
+     "timeout": "超时",
+@@ -164,6 +171,7 @@
+     "NO_DRAW_OFFER": "当前没有和棋提议。",
+     "TIME_NOT_UP": "时间还没用完。",
+     "INVALID_ACTION": "无效操作。",
++    "GAME_NOT_FINISHED": "对局尚未结束。",
+     "UNKNOWN": "出错了，请重试。"
+   },
+   "common": {
+diff --git a/src/app/[locale]/room/[code]/page.tsx b/src/app/[locale]/room/[code]/page.tsx
+index 53afc05..d682aa7 100644
+--- a/src/app/[locale]/room/[code]/page.tsx
++++ b/src/app/[locale]/room/[code]/page.tsx
+@@ -228,6 +228,45 @@ export default function RoomPage({
+             )}
+           </div>
+         )}
++        {me && room.status === "finished" && (
++          <div className="space-y-2">
++            {room.rematchOffer && room.rematchOffer !== me ? (
++              <>
++                <p className="text-sm text-stone-300">{t("rematchOffered")}</p>
++                <div className="flex flex-wrap gap-2">
++                  <button className="btn" onClick={() => act("rematch")}>
++                    {t("acceptRematch")}
++                  </button>
++                  <button
++                    className="btn-ghost"
++                    onClick={() => act("rematch-decline")}
++                  >
++                    {t("declineRematch")}
++                  </button>
++                </div>
++              </>
++            ) : room.rematchOffer === me ? (
++              <div className="flex flex-wrap items-center gap-2">
++                <p className="text-sm text-stone-300">{t("rematchWaiting")}</p>
++                <button
++                  className="btn-ghost"
++                  onClick={() => act("rematch-decline")}
++                >
++                  {t("cancelRematch")}
++                </button>
++              </div>
++            ) : (
++              <div className="flex flex-wrap items-center gap-2">
++                <button className="btn" onClick={() => act("rematch")}>
++                  {t("rematch")}
++                </button>
++                <span className="text-sm text-stone-400">
++                  {t("rematchHint")}
++                </span>
++              </div>
++            )}
++          </div>
++        )}
+         {err && <p className="text-red-400">{err}</p>}
+         <div className="rounded-lg bg-stone-800 p-3">
+           <div className="mb-2 h-48 space-y-1 overflow-y-auto text-sm">
+diff --git a/src/app/api/match/find/route.ts b/src/app/api/match/find/route.ts
+index fbb1c95..7b9ca25 100644
+--- a/src/app/api/match/find/route.ts
++++ b/src/app/api/match/find/route.ts
+@@ -47,6 +47,8 @@ export async function POST(req: NextRequest) {
+         blackTime: INITIAL_TIME,
+         lastMoveAt: Date.now(),
+         drawOffer: null,
++        rematchOffer: null,
++        gameNo: 1,
+         createdAt: Date.now(),
+       });
+       return c;
+diff --git a/src/app/api/rooms/[code]/route.ts b/src/app/api/rooms/[code]/route.ts
+index 7f5297f..3438c8c 100644
+--- a/src/app/api/rooms/[code]/route.ts
++++ b/src/app/api/rooms/[code]/route.ts
+@@ -3,6 +3,7 @@ import { Xiangqi } from "@/lib/xiangqi";
+ import { adminDb } from "@/lib/firebase-admin";
+ import {
+   finishGame,
++  freshGameState,
+   handle,
+   hashPass,
+   HttpError,
+@@ -10,7 +11,10 @@ import {
+ } from "@/lib/server";
+ import { MOVE_LIMIT, Room } from "@/lib/types";
+ 
+-/** One endpoint, many actions: join | move | resign | draw-offer | draw-accept | timeout */
++/**
++ * One endpoint, many actions:
++ * join | move | resign | draw-offer | draw-accept | timeout | rematch | rematch-decline
++ */
+ export async function POST(
+   req: NextRequest,
+   { params }: { params: Promise<{ code: string }> },
+@@ -52,6 +56,30 @@ export async function POST(
+         return;
+       }
+       if (!me) throw new HttpError(403, "NOT_A_PLAYER");
++
++      // Rematch: only once the game is over, and it reuses this same room.
++      if (body.type === "rematch" || body.type === "rematch-decline") {
++        if (room.status !== "finished")
++          throw new HttpError(400, "GAME_NOT_FINISHED");
++        if (body.type === "rematch-decline") {
++          // Either player can decline the other's offer or withdraw their own.
++          tx.update(ref, { rematchOffer: null });
++          return;
++        }
++        if (room.rematchOffer && room.rematchOffer !== me) {
++          // Opponent already asked: start the next game, swapping colours.
++          tx.update(ref, {
++            ...freshGameState(now),
++            redUid: room.blackUid,
++            blackUid: room.redUid,
++            gameNo: (room.gameNo ?? 1) + 1,
++          });
++          return;
++        }
++        tx.update(ref, { rematchOffer: me });
++        return;
++      }
++
+       if (room.status !== "playing")
+         throw new HttpError(400, "GAME_NOT_ACTIVE");
+       const other = me === "r" ? "black" : "red";
+diff --git a/src/app/api/rooms/route.ts b/src/app/api/rooms/route.ts
+index 3bf5f74..bb911a5 100644
+--- a/src/app/api/rooms/route.ts
++++ b/src/app/api/rooms/route.ts
+@@ -29,6 +29,8 @@ export async function POST(req: NextRequest) {
+       blackTime: INITIAL_TIME,
+       lastMoveAt: Date.now(),
+       drawOffer: null,
++      rematchOffer: null,
++      gameNo: 1,
+       createdAt: Date.now(),
+     });
+     if (password)
+diff --git a/src/lib/server.ts b/src/lib/server.ts
+index b40d8de..46bcf19 100644
+--- a/src/lib/server.ts
++++ b/src/lib/server.ts
+@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
+ import { createHash } from "crypto";
+ import { FieldValue, Transaction } from "firebase-admin/firestore";
+ import { adminAuth, adminDb } from "./firebase-admin";
+-import { Room } from "./types";
++import { INITIAL_TIME, Room, START_FEN } from "./types";
+ 
+ export class HttpError extends Error {
+   constructor(
+@@ -59,5 +59,22 @@ export function finishGame(
+   upd(room.blackUid!, eb + K * (1 - sR - (1 - expR)), 1 - sR);
+   return { status: "finished", result, reason };
+ }
++/**
++ * Board/clock state for a fresh game. Used to reset an existing room for a
++ * rematch, so the same room (code, chat, spectators) carries on.
++ */
++export const freshGameState = (now: number): Partial<Room> => ({
++  status: "playing",
++  result: null,
++  reason: null,
++  fen: START_FEN,
++  moves: [],
++  lastMove: null,
++  redTime: INITIAL_TIME,
++  blackTime: INITIAL_TIME,
++  lastMoveAt: now,
++  drawOffer: null,
++  rematchOffer: null,
++});
+ export const hashPass = (p: string) =>
+   createHash("sha256").update(p).digest("hex");
+diff --git a/src/lib/types.ts b/src/lib/types.ts
+index 905c511..e9de7df 100644
+--- a/src/lib/types.ts
++++ b/src/lib/types.ts
+@@ -21,6 +21,10 @@ export interface Room {
+   blackTime: number;
+   lastMoveAt: number;
+   drawOffer: "r" | "b" | null;
++  /** Who asked for a rematch once the game is finished (absent on older rooms). */
++  rematchOffer?: "r" | "b" | null;
++  /** How many games have been played in this room (absent on older rooms = 1). */
++  gameNo?: number;
+   createdAt: number;
+ }
+ export interface Profile {
+-- 
+2.43.0
+

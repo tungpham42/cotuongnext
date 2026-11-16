@@ -8,11 +8,24 @@ export async function POST(req: NextRequest) {
     const u = await requireUser(req);
     const ref = adminDb.doc(`users/${u.uid}`);
     if (!(await ref.get()).exists) {
+      const isGuest = u.firebase?.sign_in_provider === "anonymous";
+      const fallback = isGuest
+        ? `Guest-${u.uid.slice(0, 4).toUpperCase()}`
+        : "Guest";
       await ref.set({
-        uid: u.uid, name: u.name || u.email?.split("@")[0] || "Kỳ thủ", photo: u.picture || null,
-        elo: 1200, wins: 0, losses: 0, draws: 0, karma: 0, createdAt: Date.now(),
+        uid: u.uid,
+        name: u.name || u.email?.split("@")[0] || fallback,
+        photo: u.picture || null,
+        elo: 1200,
+        wins: 0,
+        losses: 0,
+        draws: 0,
+        karma: 0,
+        createdAt: Date.now(),
       });
     }
     return NextResponse.json({ ok: true });
-  } catch (e) { return handle(e); }
+  } catch (e) {
+    return handle(e);
+  }
 }

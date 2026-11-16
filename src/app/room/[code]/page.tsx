@@ -10,10 +10,13 @@ import {
   query,
 } from "firebase/firestore";
 import Link from "next/link";
-import Board from "@/components/Board";
+import Board, { boardWidth } from "@/components/Board";
 import { useAuth } from "@/components/AuthProvider";
 import { api, db } from "@/lib/firebase";
 import { MOVE_LIMIT, Profile, Room } from "@/lib/types";
+
+// Vertical space used by nav + page padding + the two player labels (keeps the board on-screen).
+const ROOM_RESERVED = "13rem";
 
 const fmt = (ms: number) => {
   const s = Math.max(0, Math.ceil(ms / 1000));
@@ -141,12 +144,16 @@ export default function RoomPage({
 
   return (
     <div className="grid gap-6 md:grid-cols-[minmax(0,560px)_1fr]">
-      <div className="space-y-2">
+      <div
+        className="space-y-2"
+        style={{ width: boardWidth(ROOM_RESERVED), maxWidth: "100%" }}
+      >
         {label(flipped ? "r" : "b")}
         <Board
           fen={room.fen}
           flipped={flipped}
           last={room.lastMove}
+          reserved={ROOM_RESERVED}
           playAs={room.status === "playing" ? me : null}
           onMove={(from, to) => act("move", { from, to })}
         />

@@ -34,7 +34,13 @@ export default function HeroBoard({ className = "" }: { className?: string }) {
   for (let c = 0; c < 9; c++) {
     const edge = c === 0 || c === 8;
     lines.push(
-      <line key={`va${c}`} x1={X(c)} x2={X(c)} y1={Y(0)} y2={Y(edge ? 9 : 4)} />,
+      <line
+        key={`va${c}`}
+        x1={X(c)}
+        x2={X(c)}
+        y1={Y(0)}
+        y2={Y(edge ? 9 : 4)}
+      />,
     );
     if (!edge)
       lines.push(
@@ -59,8 +65,12 @@ export default function HeroBoard({ className = "" }: { className?: string }) {
       >
         {lines}
         {/* palaces */}
-        <path d={`M${X(3)} ${Y(0)} L${X(5)} ${Y(2)} M${X(5)} ${Y(0)} L${X(3)} ${Y(2)}`} />
-        <path d={`M${X(3)} ${Y(7)} L${X(5)} ${Y(9)} M${X(5)} ${Y(7)} L${X(3)} ${Y(9)}`} />
+        <path
+          d={`M${X(3)} ${Y(0)} L${X(5)} ${Y(2)} M${X(5)} ${Y(0)} L${X(3)} ${Y(2)}`}
+        />
+        <path
+          d={`M${X(3)} ${Y(7)} L${X(5)} ${Y(9)} M${X(5)} ${Y(7)} L${X(3)} ${Y(9)}`}
+        />
         {/* river */}
         <text
           x={X(1.6)}
@@ -90,7 +100,7 @@ export default function HeroBoard({ className = "" }: { className?: string }) {
 
       {/* "last move" pulse */}
       <span
-        className="ring-pulse absolute size-[11%] rounded-full border-2 border-lacquer"
+        className="ring-pulse absolute size-[10%] rounded-full border-2 border-lacquer"
         style={{
           left: pct(X(LAST_MOVE.c), 360),
           top: pct(Y(LAST_MOVE.r), 400),
@@ -100,7 +110,7 @@ export default function HeroBoard({ className = "" }: { className?: string }) {
       {PIECES.map((p, i) => (
         <span
           key={i}
-          className={`piece float-piece absolute size-[11.5%] text-[6.4cqw] ${
+          className={`piece float-piece absolute size-[10%] text-[5.6cqw] ${
             p.red ? "text-lacquer" : "text-night"
           }`}
           style={

@@ -143,11 +143,12 @@ export default function Board({
   for (const c of [0, 2, 4, 6, 8])
     for (const r of [3, 6]) markers.push(marker(c, r));
 
-  // A square-ish, centred slot on a grid intersection (same 11.5% size as HeroBoard).
+  // A square-ish, centred slot on a grid intersection.
+  // 10% of the board width is below the ~11.1% grid pitch, so neighbouring pieces never touch.
   const slot = (x: number, y: number): React.CSSProperties => ({
     left: pct(x, W),
     top: pct(y, H),
-    width: "11.5%",
+    width: "10%",
     aspectRatio: "1",
     transform: "translate(-50%, -50%)",
   });
@@ -258,11 +259,11 @@ export default function Board({
               {p && (
                 <div
                   className={`size-full transition-transform duration-150 ${
-                    isSel ? "-translate-y-[6%] scale-110" : ""
+                    isSel ? "-translate-y-[6%] scale-105" : ""
                   }`}
                 >
                   <span
-                    className={`piece size-full text-[6.4cqw] ${
+                    className={`piece size-full text-[5.6cqw] ${
                       isRed ? "text-lacquer" : "text-night"
                     } ${isSel ? "ring-[3px] ring-brass ring-offset-2 ring-offset-[#d9b878]" : ""}`}
                   >

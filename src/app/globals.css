@@ -20,21 +20,57 @@
 }
 
 body {
-  @apply bg-night font-sans text-bone antialiased;
+  @apply font-sans text-bone antialiased;
   min-height: 100dvh;
-  /* faint board grid + warm lantern glow */
+  background-color: #0a1411;
+  /* Layered lacquer-night atmosphere: cool edge light, warm lantern glow,
+     and a quiet grid that gives the board room to command attention. */
   background-image:
     radial-gradient(
-      900px 480px at 80% -10%,
-      rgb(217 164 65 / 0.1),
-      transparent 60%
+      ellipse 58rem 42rem at 7% 5%,
+      rgb(63 143 138 / 0.2),
+      transparent 68%
     ),
-    linear-gradient(rgb(242 230 201 / 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(242 230 201 / 0.035) 1px, transparent 1px);
+    radial-gradient(
+      ellipse 54rem 38rem at 96% 24%,
+      rgb(214 64 43 / 0.15),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 58rem 34rem at 52% 108%,
+      rgb(217 164 65 / 0.12),
+      transparent 72%
+    ),
+    radial-gradient(
+      ellipse at 50% 42%,
+      transparent 28%,
+      rgb(3 9 7 / 0.42) 100%
+    ),
+    linear-gradient(135deg, #0a1411 0%, #13251e 46%, #0b1713 100%),
+    linear-gradient(rgb(242 230 201 / 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(242 230 201 / 0.028) 1px, transparent 1px);
   background-size:
     auto,
-    56px 56px,
-    56px 56px;
+    auto,
+    auto,
+    auto,
+    auto,
+    68px 68px,
+    68px 68px;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+/* Headings stay crisp against the atmospheric background without glowing body copy. */
+h1,
+h2,
+h3 {
+  text-shadow: 0 2px 22px rgb(0 0 0 / 0.28);
+}
+
+::selection {
+  color: #0f1a17;
+  background: rgb(217 164 65 / 0.82);
 }
 
 html[lang="zh-Hans"] body {
@@ -61,7 +97,11 @@ html[lang="zh-Hans"] body {
   box-shadow: 0 0 0 3px rgb(217 164 65 / 0.25);
 }
 .card {
-  @apply rounded-2xl border border-bone/10 bg-pine/80 backdrop-blur-sm;
+  @apply rounded-2xl border border-bone/10 bg-pine/85 backdrop-blur-md;
+  box-shadow:
+    0 18px 48px rgb(0 0 0 / 0.24),
+    0 2px 8px rgb(0 0 0 / 0.16),
+    inset 0 1px 0 rgb(242 230 201 / 0.055);
 }
 
 /* Ivory, glossy xiangqi piece face */
@@ -70,7 +110,9 @@ html[lang="zh-Hans"] body {
   background: radial-gradient(circle at 30% 25%, #fff6dc, #e9d3a0 65%, #c9aa6a);
   box-shadow:
     0 2px 0 #8d6b34,
-    0 4px 8px rgb(0 0 0 / 0.35);
+    0 5px 10px rgb(0 0 0 / 0.42),
+    0 0 0 1px rgb(255 246 220 / 0.18),
+    inset 0 1px 0 rgb(255 255 255 / 0.62);
 }
 
 /* The river that divides the board */

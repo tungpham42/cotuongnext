@@ -104,8 +104,6 @@
     "computerWins": "Máy thắng",
     "draw": "Hòa / kết thúc ván",
     "thinking": "Máy đang suy nghĩ…",
-    "loadingEngine": "Đang tải engine Pikafish… {pct}%",
-    "fallbackNote": "Pikafish không chạy được trên trình duyệt này nên đang dùng AI tích hợp (yếu hơn).",
     "check": "Chiếu tướng!",
     "yourTurn": "Đến lượt bạn (Đỏ)"
   },

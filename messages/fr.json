@@ -104,8 +104,6 @@
     "computerWins": "L'ordinateur gagne",
     "draw": "Nulle / partie terminée",
     "thinking": "L'ordinateur réfléchit…",
-    "loadingEngine": "Chargement du moteur Pikafish… {pct} %",
-    "fallbackNote": "Pikafish n'a pas pu démarrer dans ce navigateur : l'IA intégrée (plus faible) joue à sa place.",
     "check": "Échec !",
     "yourTurn": "À vous de jouer (Rouge)"
   },

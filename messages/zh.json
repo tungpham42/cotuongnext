@@ -104,8 +104,6 @@
     "computerWins": "电脑获胜",
     "draw": "和棋 / 对局结束",
     "thinking": "电脑思考中…",
-    "loadingEngine": "正在加载皮卡鱼引擎… {pct}%",
-    "fallbackNote": "此浏览器无法运行皮卡鱼，已改用内置（较弱的）AI。",
     "check": "将军！",
     "yourTurn": "轮到你了（红方）"
   },

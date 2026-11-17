@@ -104,8 +104,6 @@
     "computerWins": "Gana la computadora",
     "draw": "Tablas / fin de la partida",
     "thinking": "La computadora está pensando…",
-    "loadingEngine": "Cargando el motor Pikafish… {pct} %",
-    "fallbackNote": "Pikafish no pudo iniciarse en este navegador, así que juega la IA integrada (más débil).",
     "check": "¡Jaque!",
     "yourTurn": "Tu turno (Rojo)"
   },

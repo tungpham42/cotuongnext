@@ -26,6 +26,9 @@ const SIDES = [
 
 type Busy = null | "create" | "quick";
 
+// yyyy-mm-dd HH:mm:ss in the viewer's local time ("sv-SE" happens to use that format).
+const fmtDate = (ms: number) => new Date(ms).toLocaleString("sv-SE");
+
 export default function Lobby() {
   const { user, ready, ensureUser } = useAuth();
   const t = useTranslations("lobby");
@@ -475,6 +478,10 @@ function RoomRow({ r, now }: { r: Room; now: number }) {
               : playing
                 ? t("inProgress")
                 : t("finished")}
+            <span className="text-mist/60 tabular-nums">
+              {" · "}
+              {fmtDate(r.createdAt)}
+            </span>
           </span>
         </span>
         <span

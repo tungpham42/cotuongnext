@@ -26,6 +26,9 @@ const fmt = (ms: number) => {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 };
 
+// yyyy-mm-dd HH:mm:ss in the viewer's local time ("sv-SE" happens to use that format).
+const fmtDate = (ms: number) => new Date(ms).toLocaleString("sv-SE");
+
 export default function RoomPage({
   params,
 }: {
@@ -178,6 +181,9 @@ export default function RoomPage({
         <h1 className="text-xl font-bold">
           {room.isQuick ? tLobby("quickRoomName") : room.name}{" "}
           <span className="text-stone-400">#{room.code}</span>
+          <span className="ml-2 align-middle text-xs font-normal tabular-nums text-stone-500">
+            {fmtDate(room.createdAt)}
+          </span>
         </h1>
         {!me && room.status !== "playing" && (
           <p className="text-stone-400">{t("spectating")}</p>

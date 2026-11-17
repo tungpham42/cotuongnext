@@ -42,3 +42,7 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# pikafish engine: worker is copied from node_modules on install; the NNUE network is large
+public/engine/engine.worker.js
+public/engine/*.nnue

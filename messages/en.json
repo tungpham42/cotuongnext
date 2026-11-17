@@ -104,6 +104,8 @@
     "computerWins": "Computer wins",
     "draw": "Draw / game over",
     "thinking": "Computer is thinking…",
+    "loadingEngine": "Loading Pikafish engine… {pct}%",
+    "fallbackNote": "Pikafish couldn't start in this browser, so the built-in (weaker) AI is playing.",
     "check": "Check!",
     "yourTurn": "Your turn (Red)"
   },

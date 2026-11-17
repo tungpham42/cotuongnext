@@ -11,7 +11,7 @@ import { BrandIcon } from "./Icons";
 
 /** Primary links, in display order. `labelKey` is a key under the "nav" messages. */
 const NAV_LINKS = [
-  { href: "/play-ai", labelKey: "playAi" },
+  { href: "/ai", labelKey: "playAi" },
   { href: "/ranking", labelKey: "ranking" },
 ] as const;
 

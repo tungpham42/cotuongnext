@@ -9,9 +9,15 @@ import {
   query,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Profile, tierOf } from "@/lib/types";
+import { isGuestName, Profile, tierOf } from "@/lib/types";
 import { useDisplayName } from "@/lib/useDisplayName";
 import { TierIcon } from "@/components/Icons";
+
+const SHOWN = 50;
+// Guests can't be filtered in the query (Firestore has no pattern match), so
+// read extra rows and drop them here; otherwise a lobby full of high-Elo
+// guests would leave the board with fewer than 50 real players.
+const FETCHED = 300;
 
 export default function Ranking() {
   const t = useTranslations("ranking");
@@ -21,8 +27,14 @@ export default function Ranking() {
   useEffect(
     () =>
       onSnapshot(
-        query(collection(db, "users"), orderBy("elo", "desc"), limit(50)),
-        (s) => setRows(s.docs.map((d) => d.data() as Profile)),
+        query(collection(db, "users"), orderBy("elo", "desc"), limit(FETCHED)),
+        (s) =>
+          setRows(
+            s.docs
+              .map((d) => d.data() as Profile)
+              .filter((p) => !isGuestName(p.name))
+              .slice(0, SHOWN),
+          ),
       ),
     [],
   );

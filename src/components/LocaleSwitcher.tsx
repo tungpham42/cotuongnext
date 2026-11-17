@@ -7,7 +7,7 @@ import { localeMeta, locales, type Locale } from "@/i18n/config";
 export default function LocaleSwitcher() {
   const locale = useLocale() as Locale;
   const router = useRouter();
-  const pathname = usePathname(); // path WITHOUT the locale prefix, e.g. /room/ab12cd
+  const pathname = usePathname(); // path WITHOUT the locale prefix, e.g. /ab12cd
   const [pending, start] = useTransition();
 
   return (

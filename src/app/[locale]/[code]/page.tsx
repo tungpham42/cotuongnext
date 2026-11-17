@@ -14,7 +14,7 @@ import { useTranslations } from "next-intl";
 import Board, { boardWidth } from "@/components/Board";
 import { useAuth } from "@/components/AuthProvider";
 import { api, db } from "@/lib/firebase";
-import { MOVE_LIMIT, Profile, Room } from "@/lib/types";
+import { isExpired, MOVE_LIMIT, Profile, Room } from "@/lib/types";
 import { useApiError } from "@/lib/useApiError";
 import { useDisplayName } from "@/lib/useDisplayName";
 
@@ -111,10 +111,18 @@ export default function RoomPage({
         (room.status === "playing" && turn === c ? elapsed : 0)
       : 0;
   const perMove = room && room.status === "playing" ? MOVE_LIMIT - elapsed : 0;
+  // Anyone watching the room (player or spectator) reports an expired clock, so
+  // a game whose players have left is still settled. The server re-checks the
+  // clock, and losing a race to someone else's report is harmless, so errors
+  // from this automatic call are ignored.
+  const timeoutKey =
+    room && user && room.status === "playing" && isExpired(room, now)
+      ? `${room.code}:${room.lastMoveAt}:${Math.floor(now / 5000)}` // retry every 5 s if a call fails
+      : null;
   useEffect(() => {
-    if (me && room?.status === "playing" && (left(turn!) <= 0 || perMove <= 0))
-      act("timeout");
-  }); // eslint-disable-line react-hooks/exhaustive-deps
+    if (timeoutKey)
+      api(`/api/rooms/${code}`, { type: "timeout" }).catch(() => {});
+  }, [timeoutKey, code]);
 
   // Friends opening a shared room link get a guest seat automatically.
   if (!user || room === undefined) return <p>{t("loading")}</p>;

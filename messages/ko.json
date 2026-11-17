@@ -104,6 +104,8 @@
     "computerWins": "컴퓨터 승리",
     "draw": "무승부 / 대국 종료",
     "thinking": "컴퓨터가 생각 중…",
+    "loadingEngine": "Pikafish 엔진 로딩 중… {pct}%",
+    "fallbackNote": "이 브라우저에서는 Pikafish를 실행할 수 없어 내장(더 약한) AI로 대국 중입니다.",
     "check": "장군!",
     "yourTurn": "당신의 차례 (빨강)"
   },

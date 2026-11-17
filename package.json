@@ -2,6 +2,7 @@
   "name": "cotuong-next",
   "private": true,
   "scripts": {
+    "postinstall": "node scripts/copy-engine-worker.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start"
@@ -11,6 +12,7 @@
     "firebase-admin": "^13.0.0",
     "next": "^16.4.6",
     "next-intl": "^4.15.1",
+    "pikafish-js": "^1.0.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-icons": "^5.7.0",

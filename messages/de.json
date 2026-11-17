@@ -104,6 +104,8 @@
     "computerWins": "Computer gewinnt",
     "draw": "Remis / Partie beendet",
     "thinking": "Der Computer überlegt…",
+    "loadingEngine": "Pikafish-Engine wird geladen… {pct} %",
+    "fallbackNote": "Pikafish konnte in diesem Browser nicht gestartet werden – es spielt die integrierte (schwächere) KI.",
     "check": "Schach!",
     "yourTurn": "Du bist dran (Rot)"
   },

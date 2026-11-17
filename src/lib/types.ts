@@ -37,6 +37,12 @@ export interface Profile {
   draws: number;
   karma: number;
 }
+/**
+ * Guests are stored as "Guest-AB12" (or plain "Guest"); see /api/me. There is
+ * no separate flag on the profile, so the name is how we recognise them.
+ */
+export const isGuestName = (name?: string | null) =>
+  !!name && /^Guest(?:-[0-9A-Za-z]{4})?$/.test(name);
 export const TIERS = [
   { min: 0, key: "bronze", icon: "shield" as const },
   { min: 100, key: "silver", icon: "star" as const },

@@ -11,7 +11,7 @@ import GoogleAnalytics from "@/components/GoogleAnalytics";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { localeMeta, locales, type Locale } from "@/i18n/config";
-import Script from "next/script";
+import { SITE_URL } from "@/lib/site";
 
 // Body: friendly, full Vietnamese diacritics support
 const body = Be_Vietnam_Pro({
@@ -54,9 +54,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: t("title"),
     description: t("description"),
-    metadataBase: new URL(
-      process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
-    ),
+    metadataBase: new URL(SITE_URL),
     openGraph: {
       type: "website",
       siteName: t("siteName"),
@@ -101,10 +99,8 @@ export default async function RootLayout({
       className={`${body.variable} ${display.variable} ${han.variable}`}
     >
       <head>
-        <Script
-          id="adsense-script"
+        <script
           async
-          strategy="afterInteractive"
           src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID}`}
           crossOrigin="anonymous"
         />

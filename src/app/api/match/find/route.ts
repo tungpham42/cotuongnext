@@ -29,14 +29,18 @@ export async function POST(req: NextRequest) {
       const mine = docs.find((d) => d.data().hostUid === u.uid);
       if (mine) return mine.id;
       const c = randomBytes(3).toString("hex");
+      // Seat the host in this same transaction. (Seating them in a follow-up
+      // write left a window where a joiner could take the red seat and leave
+      // the host with none.)
+      const hostIsRed = Math.random() < 0.5;
       tx.set(adminDb.doc(`rooms/${c}`), {
         code: c,
         name: "Quick Match",
         hasPass: false,
         isQuick: true,
         hostUid: u.uid,
-        redUid: Math.random() < 0.5 ? u.uid : null,
-        blackUid: null,
+        redUid: hostIsRed ? u.uid : null,
+        blackUid: hostIsRed ? null : u.uid,
         status: "waiting",
         result: null,
         reason: null,
@@ -53,10 +57,6 @@ export async function POST(req: NextRequest) {
       });
       return c;
     });
-    // fix-up: a host who got no red seat must sit black
-    const ref = adminDb.doc(`rooms/${code}`);
-    const r = (await ref.get()).data()!;
-    if (!r.redUid && !r.blackUid) await ref.update({ blackUid: u.uid });
     return NextResponse.json({ code });
   } catch (e) {
     return handle(e);

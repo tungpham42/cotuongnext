@@ -28,19 +28,38 @@ export interface Room {
   createdAt: number;
 }
 
+// ---- Clock rules --------------------------------------------------------
+// One definition shared by the API route and every screen, so the server and
+// the browsers can never disagree about whose time is up. `now` must be on the
+// server's clock (see serverClock.ts on the client).
+
+/** Whose turn it is, read from the FEN. */
+export const turnOf = (room: Pick<Room, "fen">) =>
+  room.fen.split(" ")[1] as "r" | "b";
+
 /**
- * True when a "playing" room has run out of time (either the side to move has
- * no clock left or the per-move limit passed) but nobody has settled it yet.
+ * Milliseconds left on `side`'s game clock. Only the side to move is running,
+ * and only while the game is being played.
+ */
+export const clockLeft = (room: Room, side: "r" | "b", now: number) =>
+  (side === "r" ? room.redTime : room.blackTime) -
+  (room.status === "playing" && turnOf(room) === side
+    ? now - room.lastMoveAt
+    : 0);
+
+/** Milliseconds left for the current move (may be negative once overdue). */
+export const moveLeft = (room: Room, now: number) =>
+  MOVE_LIMIT - (now - room.lastMoveAt);
+
+/**
+ * True when a "playing" room has run out of time (the side to move has no
+ * clock left, or the per-move limit passed) but nobody has settled it yet.
  * Timeouts are only recorded when somebody reports them, so abandoned rooms
  * stay "playing" in the database until a client calls the timeout action.
  */
-export const isExpired = (room: Room, now: number) => {
-  if (room.status !== "playing") return false;
-  const elapsed = now - room.lastMoveAt;
-  const turn = room.fen.split(" ")[1];
-  const clock = turn === "r" ? room.redTime : room.blackTime;
-  return clock - elapsed <= 0 || elapsed > MOVE_LIMIT;
-};
+export const isExpired = (room: Room, now: number) =>
+  room.status === "playing" &&
+  (clockLeft(room, turnOf(room), now) <= 0 || moveLeft(room, now) <= 0);
 
 export interface Profile {
   uid: string;

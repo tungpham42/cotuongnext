@@ -2,18 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { Xiangqi } from "@/lib/xiangqi";
 import { adminDb } from "@/lib/firebase-admin";
 import {
-  finishGame,
   freshGameState,
   handle,
   hashPass,
   HttpError,
   requireUser,
+  settleGame,
 } from "@/lib/server";
-import { MOVE_LIMIT, Room } from "@/lib/types";
+import { clockLeft, isExpired, Room, turnOf } from "@/lib/types";
 
 /**
  * One endpoint, many actions:
  * join | move | resign | draw-offer | draw-accept | timeout | rematch | rematch-decline
+ *
+ * Player profiles (needed for Elo) are only read when a game actually ends, so
+ * an ordinary move costs a single document read and write.
  */
 export async function POST(
   req: NextRequest,
@@ -29,16 +32,10 @@ export async function POST(
       const snap = await tx.get(ref);
       if (!snap.exists) throw new HttpError(404, "ROOM_NOT_FOUND");
       const room = snap.data() as Room;
-      const uids = [room.redUid, room.blackUid].filter(Boolean) as string[];
-      const us = await Promise.all(
-        uids.map((id) => tx.get(adminDb.doc(`users/${id}`))),
-      );
-      const players = Object.fromEntries(us.map((s) => [s.id, s.data()]));
       const me: "r" | "b" | null =
         room.redUid === u.uid ? "r" : room.blackUid === u.uid ? "b" : null;
       const now = Date.now();
-      const elapsed = now - room.lastMoveAt;
-      const turn = room.fen.split(" ")[1] as "r" | "b";
+      const turn = turnOf(room);
 
       if (body.type === "join") {
         if (room.status !== "waiting" || me)
@@ -62,18 +59,10 @@ export async function POST(
       if (body.type === "timeout") {
         if (room.status !== "playing")
           throw new HttpError(400, "GAME_NOT_ACTIVE");
-        const t = turn === "r" ? room.redTime : room.blackTime;
-        if (t - elapsed > 0 && elapsed <= MOVE_LIMIT)
-          throw new HttpError(400, "TIME_NOT_UP");
+        if (!isExpired(room, now)) throw new HttpError(400, "TIME_NOT_UP");
         tx.update(
           ref,
-          finishGame(
-            tx,
-            room,
-            players,
-            turn === "r" ? "black" : "red",
-            "timeout",
-          ),
+          await settleGame(tx, room, turn === "r" ? "black" : "red", "timeout"),
         );
         return;
       }
@@ -103,17 +92,15 @@ export async function POST(
         return;
       }
 
-      if (room.status !== "playing" && body.type !== "rematch")
-        throw new HttpError(400, "GAME_NOT_ACTIVE");
+      if (room.status !== "playing") throw new HttpError(400, "GAME_NOT_ACTIVE");
       const other = me === "r" ? "black" : "red";
       const mine = me === "r" ? "red" : "black";
 
       switch (body.type) {
         case "move": {
           if (turn !== me) throw new HttpError(400, "NOT_YOUR_TURN");
-          const left = (me === "r" ? room.redTime : room.blackTime) - elapsed;
-          if (left <= 0 || elapsed > MOVE_LIMIT) {
-            tx.update(ref, finishGame(tx, room, players, other, "timeout"));
+          if (isExpired(room, now)) {
+            tx.update(ref, await settleGame(tx, room, other, "timeout"));
             return;
           }
           const g = new Xiangqi(room.fen);
@@ -125,26 +112,20 @@ export async function POST(
             lastMove: { from: m.from, to: m.to },
             lastMoveAt: now,
             drawOffer: null,
-            [me === "r" ? "redTime" : "blackTime"]: left,
+            [me === "r" ? "redTime" : "blackTime"]: clockLeft(room, me, now),
           };
+          // xiangqi: a stalemated side loses
           if (g.in_checkmate())
-            Object.assign(
-              upd,
-              finishGame(tx, room, players, mine, "checkmate"),
-            );
+            Object.assign(upd, await settleGame(tx, room, mine, "checkmate"));
           else if (g.in_stalemate())
-            Object.assign(
-              upd,
-              finishGame(tx, room, players, mine, "stalemate"),
-            );
-          // xiangqi: stalemated side loses
+            Object.assign(upd, await settleGame(tx, room, mine, "stalemate"));
           else if (g.game_over())
-            Object.assign(upd, finishGame(tx, room, players, "draw", "draw"));
+            Object.assign(upd, await settleGame(tx, room, "draw", "draw"));
           tx.update(ref, upd);
           return;
         }
         case "resign":
-          tx.update(ref, finishGame(tx, room, players, other, "resign"));
+          tx.update(ref, await settleGame(tx, room, other, "resign"));
           return;
         case "draw-offer":
           tx.update(ref, { drawOffer: me });
@@ -152,7 +133,7 @@ export async function POST(
         case "draw-accept":
           if (!room.drawOffer || room.drawOffer === me)
             throw new HttpError(400, "NO_DRAW_OFFER");
-          tx.update(ref, finishGame(tx, room, players, "draw", "agreement"));
+          tx.update(ref, await settleGame(tx, room, "draw", "agreement"));
           return;
         default:
           throw new HttpError(400, "INVALID_ACTION");

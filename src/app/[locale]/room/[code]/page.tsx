@@ -14,9 +14,19 @@ import { useTranslations } from "next-intl";
 import Board, { boardWidth } from "@/components/Board";
 import { useAuth } from "@/components/AuthProvider";
 import { api, db } from "@/lib/firebase";
-import { isExpired, MOVE_LIMIT, Profile, Room } from "@/lib/types";
+import { useServerNow } from "@/lib/serverClock";
+import {
+  clockLeft,
+  isExpired,
+  MOVE_LIMIT,
+  moveLeft,
+  Profile,
+  Room,
+  turnOf,
+} from "@/lib/types";
 import { useApiError } from "@/lib/useApiError";
 import { useDisplayName } from "@/lib/useDisplayName";
+import { Xiangqi } from "@/lib/xiangqi";
 
 // Vertical space used by nav + page padding + the two player labels (keeps the board on-screen).
 const ROOM_RESERVED = "13rem";
@@ -25,6 +35,48 @@ const fmt = (ms: number) => {
   const s = Math.max(0, Math.ceil(ms / 1000));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 };
+
+// The three components below each tick on their own (against the server's
+// clock), so the page, the board and the chat don't re-render 4x a second.
+
+/** One player's game clock. */
+function Clock({ room, side }: { room: Room; side: "r" | "b" }) {
+  const now = useServerNow(250);
+  return (
+    <span className="font-mono text-lg">{fmt(clockLeft(room, side, now))}</span>
+  );
+}
+
+/** "m:ss left for this move". */
+function MoveTimer({ room }: { room: Room }) {
+  const t = useTranslations("room");
+  const now = useServerNow(250);
+  return (
+    <p className="text-sm text-stone-400">
+      {t("moveTimeLeft", {
+        time: fmt(moveLeft(room, now)),
+        max: MOVE_LIMIT / 1000,
+      })}
+    </p>
+  );
+}
+
+/**
+ * Anyone watching the room (player or spectator) reports an expired clock, so a
+ * game whose players have left is still settled. The server re-checks the
+ * clock, and losing a race to someone else's report is harmless, so errors
+ * from this automatic call are ignored. Retries every 5 s if a call fails.
+ */
+function TimeoutWatcher({ room }: { room: Room }) {
+  const now = useServerNow(250);
+  const key = isExpired(room, now)
+    ? `${room.lastMoveAt}:${Math.floor(now / 5000)}`
+    : null;
+  useEffect(() => {
+    if (key) api(`/api/rooms/${room.code}`, { type: "timeout" }).catch(() => {});
+  }, [key, room.code]);
+  return null;
+}
 
 export default function RoomPage({
   params,
@@ -46,7 +98,12 @@ export default function RoomPage({
   const [text, setText] = useState("");
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
-  const [now, setNow] = useState(Date.now());
+  // The move just played, shown on the board before the server confirms it.
+  const [optimistic, setOptimistic] = useState<{
+    base: string; // the server position it was played from
+    fen: string;
+    move: { from: string; to: string };
+  } | null>(null);
 
   useEffect(() => {
     if (ready && !user) ensureUser().catch((e) => setErr(apiError(e)));
@@ -71,30 +128,48 @@ export default function RoomPage({
           ),
       );
   }, [user, code]);
+  // Player profiles: one listener per seated player, released when the seat
+  // changes (e.g. after a rematch swaps colours) or the page closes.
   useEffect(() => {
-    if (!room) return;
-    [room.redUid, room.blackUid]
-      .filter(Boolean)
-      .forEach((u) =>
-        onSnapshot(
-          doc(db, "users", u!),
-          (s) =>
-            s.exists() &&
-            setNames((n) => ({ ...n, [u!]: s.data() as Profile })),
-        ),
-      );
-  }, [room?.redUid, room?.blackUid]); // eslint-disable-line react-hooks/exhaustive-deps
+    const uids = [room?.redUid, room?.blackUid].filter(Boolean) as string[];
+    const unsubs = uids.map((uid) =>
+      onSnapshot(
+        doc(db, "users", uid),
+        (s) =>
+          s.exists() && setNames((n) => ({ ...n, [uid]: s.data() as Profile })),
+      ),
+    );
+    return () => unsubs.forEach((off) => off());
+  }, [room?.redUid, room?.blackUid]);
+  // Errors are transient notices, not permanent page furniture.
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 250);
-    return () => clearInterval(t);
-  }, []);
+    if (!err) return;
+    const id = setTimeout(() => setErr(""), 5000);
+    return () => clearTimeout(id);
+  }, [err]);
 
-  const act = (type: string, extra: object = {}) =>
-    api(`/api/rooms/${code}`, { type, ...extra }).catch((e) =>
+  const act = (type: string, extra: object = {}) => {
+    setErr("");
+    return api(`/api/rooms/${code}`, { type, ...extra }).catch((e) =>
       setErr(apiError(e)),
     );
+  };
 
-  // Whoever is playing reports timeouts; the server re-checks the clock.
+  // Show your own move at once instead of waiting for the server round trip
+  // and the Firestore update. The server still validates it; if it refuses,
+  // the board snaps back and the reason is shown.
+  const playMove = (from: string, to: string) => {
+    if (!room) return;
+    const g = new Xiangqi(room.fen);
+    if (!g.move({ from, to })) return; // the board only offers legal moves
+    setErr("");
+    setOptimistic({ base: room.fen, fen: g.fen(), move: { from, to } });
+    api(`/api/rooms/${code}`, { type: "move", from, to }).catch((e) => {
+      setOptimistic(null);
+      setErr(apiError(e));
+    });
+  };
+
   const me =
     room && user
       ? room.redUid === user.uid
@@ -103,31 +178,19 @@ export default function RoomPage({
           ? "b"
           : null
       : null;
-  const turn = room?.fen.split(" ")[1] as "r" | "b" | undefined;
-  const elapsed = room ? now - room.lastMoveAt : 0;
-  const left = (c: "r" | "b") =>
-    room
-      ? (c === "r" ? room.redTime : room.blackTime) -
-        (room.status === "playing" && turn === c ? elapsed : 0)
-      : 0;
-  const perMove = room && room.status === "playing" ? MOVE_LIMIT - elapsed : 0;
-  // Anyone watching the room (player or spectator) reports an expired clock, so
-  // a game whose players have left is still settled. The server re-checks the
-  // clock, and losing a race to someone else's report is harmless, so errors
-  // from this automatic call are ignored.
-  const timeoutKey =
-    room && user && room.status === "playing" && isExpired(room, now)
-      ? `${room.code}:${room.lastMoveAt}:${Math.floor(now / 5000)}` // retry every 5 s if a call fails
-      : null;
-  useEffect(() => {
-    if (timeoutKey)
-      api(`/api/rooms/${code}`, { type: "timeout" }).catch(() => {});
-  }, [timeoutKey, code]);
 
   // Friends opening a shared room link get a guest seat automatically.
   if (!user || room === undefined) return <p>{t("loading")}</p>;
   if (room === null) return <p>{t("notFound")}</p>;
 
+  // The optimistic move only applies while the server is still on the position
+  // it was played from. As soon as the real state arrives (the move, or the
+  // game ending on time) the server's version wins, so no cleanup is needed.
+  const pending =
+    optimistic && room.status === "playing" && room.fen === optimistic.base
+      ? optimistic
+      : null;
+  const turn = turnOf(room);
   const flipped = me === "b";
   const label = (c: "r" | "b") => {
     const uid = c === "r" ? room.redUid : room.blackUid;
@@ -140,7 +203,7 @@ export default function RoomPage({
           <SideDot side={c} className="mr-1.5 inline-block -translate-y-px" />
           {p ? `${dn(p.name)} (${p.elo})` : t("waitingSeat")}
         </span>
-        <span className="font-mono text-lg">{fmt(left(c))}</span>
+        <Clock room={room} side={c} />
       </div>
     );
   };
@@ -165,12 +228,12 @@ export default function RoomPage({
       >
         {label(flipped ? "r" : "b")}
         <Board
-          fen={room.fen}
+          fen={pending?.fen ?? room.fen}
           flipped={flipped}
-          last={room.lastMove}
+          last={pending?.move ?? room.lastMove}
           reserved={ROOM_RESERVED}
           playAs={room.status === "playing" ? me : null}
-          onMove={(from, to) => act("move", { from, to })}
+          onMove={playMove}
         />
         {label(flipped ? "b" : "r")}
       </div>
@@ -183,12 +246,10 @@ export default function RoomPage({
           <p className="text-stone-400">{t("spectating")}</p>
         )}
         {room.status === "playing" && (
-          <p className="text-sm text-stone-400">
-            {t("moveTimeLeft", {
-              time: fmt(perMove),
-              max: MOVE_LIMIT / 1000,
-            })}
-          </p>
+          <>
+            <MoveTimer room={room} />
+            <TimeoutWatcher room={room} />
+          </>
         )}
         {room.status === "finished" && (
           <p className="text-xl font-bold text-amber-400">

@@ -60,6 +60,31 @@ export function finishGame(
   return { status: "finished", result, reason };
 }
 /**
+ * Load both players' profiles inside a transaction. Only needed when a game is
+ * about to finish (Elo update), so callers should not read them on every move.
+ */
+export async function loadPlayers(tx: Transaction, room: Room) {
+  const uids = [room.redUid, room.blackUid].filter(Boolean) as string[];
+  const snaps = await Promise.all(
+    uids.map((id) => tx.get(adminDb.doc(`users/${id}`))),
+  );
+  return Object.fromEntries(snaps.map((s) => [s.id, s.data()])) as Record<
+    string,
+    any
+  >;
+}
+
+/** Finish the game: load the players, then apply Elo/karma and build the update. */
+export async function settleGame(
+  tx: Transaction,
+  room: Room,
+  result: "red" | "black" | "draw",
+  reason: string,
+) {
+  return finishGame(tx, room, await loadPlayers(tx, room), result, reason);
+}
+
+/**
  * Board/clock state for a fresh game. Used to reset an existing room for a
  * rematch, so the same room (code, chat, spectators) carries on.
  */

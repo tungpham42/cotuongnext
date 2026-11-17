@@ -14,6 +14,7 @@ import {
 import { api, db } from "@/lib/firebase";
 import { useAuth } from "@/components/AuthProvider";
 import HeroBoard from "@/components/HeroBoard";
+import { useServerNow } from "@/lib/serverClock";
 import { isExpired, Room } from "@/lib/types";
 import { useApiError } from "@/lib/useApiError";
 import { useDisplayName } from "@/lib/useDisplayName";
@@ -76,24 +77,22 @@ export default function Lobby() {
 
   const quickMatch = () => run("quick", () => api("/api/match/find"));
 
-  // Tick so rooms whose clock runs out while the lobby is open flip over too.
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
+  // Server time, ticking, so rooms whose clock runs out while the lobby is open
+  // flip over too (and a wrong device clock can't mislabel rooms).
+  const now = useServerNow(1000);
 
   // A room can read "playing" long after its clock ran out (e.g. both players
   // left before anyone reported the timeout). Treat those as finished here and
-  // ask the server to settle them, once per room, so the status sticks.
-  const settled = useRef(new Set<string>());
+  // ask the server to settle them so the status sticks. Each room is retried
+  // at most every 10 s in case a report fails or arrives early.
+  const lastReport = useRef(new Map<string, number>());
   useEffect(() => {
     if (!user) return;
     for (const r of rooms) {
       if (!isExpired(r, now)) continue;
       const key = `${r.code}:${r.lastMoveAt}`;
-      if (settled.current.has(key)) continue;
-      settled.current.add(key);
+      if (now - (lastReport.current.get(key) ?? -Infinity) < 10_000) continue;
+      lastReport.current.set(key, now);
       api(`/api/rooms/${r.code}`, { type: "timeout" }).catch(() => {});
     }
   }, [rooms, now, user]);

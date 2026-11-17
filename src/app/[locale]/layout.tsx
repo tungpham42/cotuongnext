@@ -40,6 +40,12 @@ const OG_LOCALE: Record<Locale, string> = {
   en: "en_US",
   vi: "vi_VN",
   zh: "zh_CN",
+  ja: "ja_JP",
+  ko: "ko_KR",
+  de: "de_DE",
+  fr: "fr_FR",
+  es: "es_ES",
+  ru: "ru_RU",
 };
 
 export async function generateMetadata(): Promise<Metadata> {

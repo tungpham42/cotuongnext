@@ -14,7 +14,7 @@ import {
 import { api, db } from "@/lib/firebase";
 import { useAuth } from "@/components/AuthProvider";
 import HeroBoard from "@/components/HeroBoard";
-import { Room } from "@/lib/types";
+import { isExpired, Room } from "@/lib/types";
 import { useApiError } from "@/lib/useApiError";
 import { useDisplayName } from "@/lib/useDisplayName";
 
@@ -76,12 +76,35 @@ export default function Lobby() {
 
   const quickMatch = () => run("quick", () => api("/api/match/find"));
 
+  // Tick so rooms whose clock runs out while the lobby is open flip over too.
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // A room can read "playing" long after its clock ran out (e.g. both players
+  // left before anyone reported the timeout). Treat those as finished here and
+  // ask the server to settle them, once per room, so the status sticks.
+  const settled = useRef(new Set<string>());
+  useEffect(() => {
+    if (!user) return;
+    for (const r of rooms) {
+      if (!isExpired(r, now)) continue;
+      const key = `${r.code}:${r.lastMoveAt}`;
+      if (settled.current.has(key)) continue;
+      settled.current.add(key);
+      api(`/api/rooms/${r.code}`, { type: "timeout" }).catch(() => {});
+    }
+  }, [rooms, now, user]);
+
   const stats = useMemo(
     () => ({
       waiting: rooms.filter((r) => r.status === "waiting").length,
-      live: rooms.filter((r) => r.status === "playing").length,
+      live: rooms.filter((r) => r.status === "playing" && !isExpired(r, now))
+        .length,
     }),
-    [rooms],
+    [rooms, now],
   );
 
   const hostFriend = () => {
@@ -251,7 +274,7 @@ export default function Lobby() {
           ) : rooms.length ? (
             <ul className="space-y-2">
               {rooms.map((r) => (
-                <RoomRow key={r.code} r={r} />
+                <RoomRow key={r.code} r={r} now={now} />
               ))}
             </ul>
           ) : (
@@ -414,10 +437,10 @@ function WayCard({
   );
 }
 
-function RoomRow({ r }: { r: Room }) {
+function RoomRow({ r, now }: { r: Room; now: number }) {
   const t = useTranslations("lobby");
   const waiting = r.status === "waiting";
-  const playing = r.status === "playing";
+  const playing = r.status === "playing" && !isExpired(r, now);
   return (
     <li>
       <Link

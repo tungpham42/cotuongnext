@@ -55,6 +55,29 @@ export async function POST(
         });
         return;
       }
+
+      // Anyone signed in (a spectator, or the lobby) may report an expired
+      // clock: the server re-checks it here, so a game whose players have both
+      // left still gets settled instead of showing "in progress" forever.
+      if (body.type === "timeout") {
+        if (room.status !== "playing")
+          throw new HttpError(400, "GAME_NOT_ACTIVE");
+        const t = turn === "r" ? room.redTime : room.blackTime;
+        if (t - elapsed > 0 && elapsed <= MOVE_LIMIT)
+          throw new HttpError(400, "TIME_NOT_UP");
+        tx.update(
+          ref,
+          finishGame(
+            tx,
+            room,
+            players,
+            turn === "r" ? "black" : "red",
+            "timeout",
+          ),
+        );
+        return;
+      }
+
       if (!me) throw new HttpError(403, "NOT_A_PLAYER");
 
       // Rematch: only once the game is over, and it reuses this same room.
@@ -131,22 +154,6 @@ export async function POST(
             throw new HttpError(400, "NO_DRAW_OFFER");
           tx.update(ref, finishGame(tx, room, players, "draw", "agreement"));
           return;
-        case "timeout": {
-          const t = turn === "r" ? room.redTime : room.blackTime;
-          if (t - elapsed > 0 && elapsed <= MOVE_LIMIT)
-            throw new HttpError(400, "TIME_NOT_UP");
-          tx.update(
-            ref,
-            finishGame(
-              tx,
-              room,
-              players,
-              turn === "r" ? "black" : "red",
-              "timeout",
-            ),
-          );
-          return;
-        }
         default:
           throw new HttpError(400, "INVALID_ACTION");
       }
